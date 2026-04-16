@@ -20,9 +20,9 @@ class TestCheckDimensions:
         assert not result.ok
 
     def test_symbolic_expression(self) -> None:
-        # 1 kg*m/s^2 is exactly 1 newton — pure unit expression, no free symbols
+        # F = m * a should have units of force
         result = check_dimensions(
-            "1 * kilogram * meter / second**2",
+            "Symbol('m') * Symbol('a') * kilogram * meter / second**2",
             "newton",
         )
         assert result.ok

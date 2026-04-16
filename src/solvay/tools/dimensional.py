@@ -34,9 +34,15 @@ def check_dimensions(expression: str, expected_unit: str) -> DimCheckResult:
         converted = convert_to(expr, target, unit_system=SI)
         simplified = sympy.simplify(converted)
 
+        # Strip non-unit free Symbols (e.g. m, a in F = m*a) so the dimensional
+        # check compares unit structure only. sympy Quantity is not a Symbol,
+        # so free_symbols yields only the user-introduced placeholders.
+        free_syms = getattr(simplified, "free_symbols", set())
+        units_only = simplified.subs({s: 1 for s in free_syms}) if free_syms else simplified
+
         # Check if conversion succeeded (no leftover unit mismatch)
         # If convert_to cannot convert, it returns the original expression unchanged
-        ratio = sympy.simplify(simplified / target) if target != 1 else simplified
+        ratio = sympy.simplify(units_only / target) if target != 1 else units_only
         is_number = ratio.is_number if hasattr(ratio, "is_number") else False
 
         return DimCheckResult(
