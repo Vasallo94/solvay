@@ -46,6 +46,10 @@ python_version = "3.14"
 strict = true
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+module = ["sympy", "sympy.*"]
+ignore_missing_imports = true
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
