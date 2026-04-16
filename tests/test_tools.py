@@ -1,9 +1,12 @@
 """Tests for custom tools."""
 
+from unittest.mock import patch
+
 import pytest
 
 from solvay.tools.dimensional import check_dimensions
 from solvay.tools.python_exec import python_exec, reset_exec_state
+from solvay.tools.url_fetch import url_fetch
 
 
 class TestCheckDimensions:
@@ -67,3 +70,42 @@ class TestPythonExec:
     def test_error_handling(self) -> None:
         result = python_exec("1 / 0")
         assert "ZeroDivisionError" in result.stderr
+
+
+class TestUrlFetch:
+    def test_fetch_with_text_extraction(self) -> None:
+        mock_html = "<html><body><p>Physics is great</p></body></html>"
+        with patch("solvay.tools.url_fetch.httpx") as mock_httpx:
+            mock_client = mock_httpx.Client.return_value.__enter__.return_value
+            mock_response = mock_client.get.return_value
+            mock_response.status_code = 200
+            mock_response.text = mock_html
+            mock_response.raise_for_status = lambda: None
+
+            with patch("solvay.tools.url_fetch.trafilatura") as mock_traf:
+                mock_traf.extract.return_value = "Physics is great"
+                result = url_fetch("https://example.com")
+                assert "Physics is great" in result
+
+    def test_fetch_raw_html(self) -> None:
+        mock_html = "<html><body><p>Hello</p></body></html>"
+        with patch("solvay.tools.url_fetch.httpx") as mock_httpx:
+            mock_client = mock_httpx.Client.return_value.__enter__.return_value
+            mock_response = mock_client.get.return_value
+            mock_response.status_code = 200
+            mock_response.text = mock_html
+            mock_response.raise_for_status = lambda: None
+
+            result = url_fetch("https://example.com", extract_text=False)
+            assert "<html>" in result
+
+    def test_truncation(self) -> None:
+        with patch("solvay.tools.url_fetch.httpx") as mock_httpx:
+            mock_client = mock_httpx.Client.return_value.__enter__.return_value
+            mock_response = mock_client.get.return_value
+            mock_response.status_code = 200
+            mock_response.text = "x" * 50000
+            mock_response.raise_for_status = lambda: None
+
+            result = url_fetch("https://example.com", extract_text=False, max_chars=100)
+            assert len(result) <= 100
