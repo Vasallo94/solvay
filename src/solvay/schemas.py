@@ -79,6 +79,15 @@ class JournalEntry(BaseModel):
     content: str
 
 
+class CritiqueEntry(BaseModel):
+    """One iteration of the solver-critique loop: the draft and its verdicts."""
+
+    iteration: int
+    draft: SolutionDraft
+    verifier_verdict: Verdict | None = None
+    reviewer_verdict: Verdict | None = None
+
+
 class SolverLoopState(BaseModel):
     """State for the solver-critique LangGraph subgraph."""
 
@@ -92,7 +101,7 @@ class SolverLoopState(BaseModel):
     current_draft: SolutionDraft | None = None
     verifier_verdict: Verdict | None = None
     reviewer_verdict: Verdict | None = None
-    critique_history: list[dict] = Field(default_factory=list)  # type: ignore[type-arg]
+    critique_history: list[CritiqueEntry] = Field(default_factory=list)
 
     # Blocking signal
     solver_blocked: bool = False
