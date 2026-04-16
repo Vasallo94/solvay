@@ -1,6 +1,8 @@
 """Tests for Pydantic schemas."""
 
 import pytest
+from pydantic import ValidationError
+
 from solvay.schemas import (
     DimCheckResult,
     ExecResult,
@@ -44,10 +46,10 @@ class TestProblemSpec:
         assert len(spec.knowns) == 1
 
     def test_invalid_domain_rejected(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             ProblemSpec(
                 statement="test",
-                domain="biology",  # type: ignore[arg-type]
+                domain="biology",
                 knowns={},
                 unknowns=[],
                 assumptions=[],
