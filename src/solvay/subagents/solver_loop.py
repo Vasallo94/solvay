@@ -76,11 +76,7 @@ def build_solver_loop_graph(
 
         prompt = "\n\n".join(prompt_parts)
         response = solver_model.invoke([HumanMessage(content=prompt)])
-        content = (
-            response.content
-            if isinstance(response.content, str)
-            else str(response.content)
-        )
+        content = response.content if isinstance(response.content, str) else str(response.content)
 
         try:
             parsed = json.loads(content)
@@ -110,16 +106,11 @@ def build_solver_loop_graph(
         problem = state.problem_spec
 
         critique_prompt = (
-            f"Problem: {json.dumps(problem)}\n\n"
-            f"Solution draft to review: {json.dumps(draft)}"
+            f"Problem: {json.dumps(problem)}\n\nSolution draft to review: {json.dumps(draft)}"
         )
 
-        verifier_resp = verifier_model.invoke(
-            [HumanMessage(content=critique_prompt)]
-        )
-        reviewer_resp = reviewer_model.invoke(
-            [HumanMessage(content=critique_prompt)]
-        )
+        verifier_resp = verifier_model.invoke([HumanMessage(content=critique_prompt)])
+        reviewer_resp = reviewer_model.invoke([HumanMessage(content=critique_prompt)])
 
         v_content = (
             verifier_resp.content
@@ -184,8 +175,7 @@ def build_solver_loop_graph(
 
         if iteration >= max_iterations:
             has_blockers = (
-                verifier.get("severity") == "blocker"
-                or reviewer.get("severity") == "blocker"
+                verifier.get("severity") == "blocker" or reviewer.get("severity") == "blocker"
             )
             return {
                 "final_draft": state.current_draft,

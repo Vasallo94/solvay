@@ -66,8 +66,7 @@ def append_journal_entries(
     lines: list[str] = []
     for entry in entries:
         lines.append(
-            f"\n---\n## [{entry.role}] iter {entry.iteration} ({timestamp})\n"
-            f"{entry.content}\n"
+            f"\n---\n## [{entry.role}] iter {entry.iteration} ({timestamp})\n{entry.content}\n"
         )
 
     with open(journal_path, "a", encoding="utf-8") as f:

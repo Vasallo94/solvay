@@ -87,9 +87,7 @@ class TestSolverLoopBudgetExhausted:
     """3 iterations without consensus: budget_exhausted."""
 
     def test_budget_exhausted(self) -> None:
-        solver_model = FakeListChatModel(
-            responses=[_draft_json(), _draft_json(), _draft_json()]
-        )
+        solver_model = FakeListChatModel(responses=[_draft_json(), _draft_json(), _draft_json()])
         verifier_model = FakeListChatModel(
             responses=[
                 _verdict_json(False, "blocker"),
@@ -121,10 +119,12 @@ class TestSolverLoopJudgeForced:
     """Solver signals blocked: judge_forced."""
 
     def test_judge_forced(self) -> None:
-        blocked_response = json.dumps({
-            "solver_blocked": True,
-            "blocked_topic": "relativistic corrections",
-        })
+        blocked_response = json.dumps(
+            {
+                "solver_blocked": True,
+                "blocked_topic": "relativistic corrections",
+            }
+        )
         solver_model = FakeListChatModel(responses=[blocked_response])
         verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
         reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
@@ -144,9 +144,7 @@ class TestSolverLoopCritiqueHistory:
     """Critique history accumulates across iterations."""
 
     def test_history_accumulates(self) -> None:
-        solver_model = FakeListChatModel(
-            responses=[_draft_json(), _draft_json()]
-        )
+        solver_model = FakeListChatModel(responses=[_draft_json(), _draft_json()])
         verifier_model = FakeListChatModel(
             responses=[
                 _verdict_json(False, "minor"),

@@ -17,12 +17,8 @@ app = typer.Typer(
 
 @app.command()
 def solve(
-    statement: str | None = typer.Argument(
-        None, help="The physics problem statement."
-    ),
-    file: Path | None = typer.Option(
-        None, "--file", "-f", help="Read problem from a text file."
-    ),
+    statement: str | None = typer.Argument(None, help="The physics problem statement."),
+    file: Path | None = typer.Option(None, "--file", "-f", help="Read problem from a text file."),
     show_notebook: bool = typer.Option(
         False, "--show-notebook", help="Show full lab notebook after solving."
     ),
@@ -70,13 +66,10 @@ def solve(
     user_message = problem
     if journal_snapshot:
         user_message += (
-            "\n\n---\nPrevious session learnings (from lab journal):\n"
-            f"{journal_snapshot}\n---"
+            f"\n\n---\nPrevious session learnings (from lab journal):\n{journal_snapshot}\n---"
         )
 
-    result = agent.invoke(
-        {"messages": [{"role": "user", "content": user_message}]}
-    )
+    result = agent.invoke({"messages": [{"role": "user", "content": user_message}]})
 
     final_message = result["messages"][-1].content
     typer.echo("=" * 60)
@@ -85,16 +78,12 @@ def solve(
 
     if show_notebook:
         files = result.get("files", {})
-        notebook = files.get("/lab_notebook.md", {}).get(
-            "content", "(no notebook found)"
-        )
+        notebook = files.get("/lab_notebook.md", {}).get("content", "(no notebook found)")
         typer.echo("\n--- Lab Notebook ---")
         typer.echo(notebook)
 
     if trace is not None:
-        trace.write_text(
-            json.dumps(result, default=str, indent=2), encoding="utf-8"
-        )
+        trace.write_text(json.dumps(result, default=str, indent=2), encoding="utf-8")
         typer.echo(f"\nTrace saved to {trace}")
 
     if persistence_config.enabled:
@@ -112,9 +101,7 @@ def bench(
         "-p",
         help="Directory containing benchmark problem JSON files.",
     ),
-    out: Path | None = typer.Option(
-        None, "--out", "-o", help="Output results JSON file."
-    ),
+    out: Path | None = typer.Option(None, "--out", "-o", help="Output results JSON file."),
 ) -> None:
     """Run the benchmark suite against curated physics problems."""
     if not problems.exists():
@@ -129,9 +116,7 @@ def bench(
     results = run_benchmark(problems_dir=problems)
 
     if out is not None:
-        out.write_text(
-            json.dumps(results, default=str, indent=2), encoding="utf-8"
-        )
+        out.write_text(json.dumps(results, default=str, indent=2), encoding="utf-8")
         typer.echo(f"Results saved to {out}")
     else:
         typer.echo(json.dumps(results, default=str, indent=2))

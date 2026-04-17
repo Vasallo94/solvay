@@ -54,7 +54,7 @@ def parse_consolidator_response(response_text: str) -> list[JournalEntry]:
     """
     try:
         data = json.loads(response_text)
-    except (json.JSONDecodeError, TypeError):
+    except json.JSONDecodeError, TypeError:
         return []
 
     if not isinstance(data, list):
@@ -64,7 +64,7 @@ def parse_consolidator_response(response_text: str) -> list[JournalEntry]:
     for item in data:
         try:
             entries.append(JournalEntry(**item))
-        except (TypeError, ValidationError):
+        except TypeError, ValidationError:
             continue
 
     return entries

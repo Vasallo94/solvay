@@ -57,16 +57,10 @@ def build_notebook_context(
     if config is None:
         config = NotebookConfig()
 
-    recent = get_recent_notebook_entries(
-        notebook_content, max_entries=config.max_injected_entries
-    )
+    recent = get_recent_notebook_entries(notebook_content, max_entries=config.max_injected_entries)
 
     if not recent:
-        return (
-            "\n\n---\n"
-            "**Lab Notebook:** (empty -- you are the first agent this session)\n"
-            "---\n"
-        )
+        return "\n\n---\n**Lab Notebook:** (empty -- you are the first agent this session)\n---\n"
 
     return (
         "\n\n---\n"

@@ -10,18 +10,20 @@ from solvay.subagents.consolidator import parse_consolidator_response
 
 class TestParseConsolidatorResponse:
     def test_valid_entries(self) -> None:
-        response = json.dumps([
-            {
-                "role": "solver",
-                "iteration": 1,
-                "content": "Lagrangian approach worked better than Newtonian for coupled systems.",
-            },
-            {
-                "role": "verifier",
-                "iteration": 2,
-                "content": "Always check units before checking magnitudes.",
-            },
-        ])
+        response = json.dumps(
+            [
+                {
+                    "role": "solver",
+                    "iteration": 1,
+                    "content": "Lagrangian approach worked better than Newtonian for coupled systems.",
+                },
+                {
+                    "role": "verifier",
+                    "iteration": 2,
+                    "content": "Always check units before checking magnitudes.",
+                },
+            ]
+        )
         entries = parse_consolidator_response(response)
         assert len(entries) == 2
         assert all(isinstance(e, JournalEntry) for e in entries)
@@ -36,10 +38,12 @@ class TestParseConsolidatorResponse:
         assert entries == []
 
     def test_partial_valid_entries(self) -> None:
-        response = json.dumps([
-            {"role": "solver", "iteration": 1, "content": "Valid entry."},
-            {"bad_field": "missing required fields"},
-        ])
+        response = json.dumps(
+            [
+                {"role": "solver", "iteration": 1, "content": "Valid entry."},
+                {"bad_field": "missing required fields"},
+            ]
+        )
         entries = parse_consolidator_response(response)
         assert len(entries) == 1
         assert entries[0].role == "solver"

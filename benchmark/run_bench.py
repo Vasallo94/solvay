@@ -55,22 +55,26 @@ def run_benchmark(
             if correct:
                 total_correct += 1
 
-            results.append({
-                "id": problem["id"],
-                "domain": problem["domain"],
-                "correct": correct,
-                "elapsed_seconds": round(elapsed, 1),
-                "answer_excerpt": final_msg[:200],
-            })
+            results.append(
+                {
+                    "id": problem["id"],
+                    "domain": problem["domain"],
+                    "correct": correct,
+                    "elapsed_seconds": round(elapsed, 1),
+                    "answer_excerpt": final_msg[:200],
+                }
+            )
         except Exception as exc:
             elapsed = time.time() - start
-            results.append({
-                "id": problem["id"],
-                "domain": problem["domain"],
-                "correct": False,
-                "elapsed_seconds": round(elapsed, 1),
-                "error": str(exc),
-            })
+            results.append(
+                {
+                    "id": problem["id"],
+                    "domain": problem["domain"],
+                    "correct": False,
+                    "elapsed_seconds": round(elapsed, 1),
+                    "error": str(exc),
+                }
+            )
 
     summary = {
         "total": len(results),
@@ -138,8 +142,6 @@ def _group_by_domain(results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]
             domains[d]["correct"] += 1
     for d in domains:
         domains[d]["accuracy"] = (
-            round(domains[d]["correct"] / domains[d]["total"], 3)
-            if domains[d]["total"] > 0
-            else 0
+            round(domains[d]["correct"] / domains[d]["total"], 3) if domains[d]["total"] > 0 else 0
         )
     return domains

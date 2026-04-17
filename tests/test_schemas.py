@@ -148,17 +148,12 @@ class TestCritiqueEntry:
             iteration=1,
             draft=self._draft(),
             verifier_verdict=Verdict(approved=True, issues=[], severity="none"),
-            reviewer_verdict=Verdict(
-                approved=False, issues=["Check sign"], severity="minor"
-            ),
+            reviewer_verdict=Verdict(approved=False, issues=["Check sign"], severity="minor"),
         )
         assert entry.iteration == 1
         assert isinstance(entry.draft, SolutionDraft)
         assert entry.verifier_verdict is not None and entry.verifier_verdict.approved
-        assert (
-            entry.reviewer_verdict is not None
-            and entry.reviewer_verdict.severity == "minor"
-        )
+        assert entry.reviewer_verdict is not None and entry.reviewer_verdict.severity == "minor"
 
     def test_verdicts_default_to_none(self) -> None:
         entry = CritiqueEntry(iteration=0, draft=self._draft())
@@ -214,9 +209,7 @@ class TestSolverLoopState:
         assert state.critique_history[0].draft.method == "m"
 
     def test_critique_history_coerces_dict_input(self) -> None:
-        draft = SolutionDraft(
-            method="m", steps=["s"], final_answer="x", code_trace=[]
-        )
+        draft = SolutionDraft(method="m", steps=["s"], final_answer="x", code_trace=[])
         state = SolverLoopState(
             problem_spec=ProblemSpec(
                 statement="t",

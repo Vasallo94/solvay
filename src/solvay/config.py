@@ -6,8 +6,13 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 Role = Literal[
-    "orchestrator", "parser", "researcher", "solver",
-    "verifier", "peer_reviewer", "consolidator",
+    "orchestrator",
+    "parser",
+    "researcher",
+    "solver",
+    "verifier",
+    "peer_reviewer",
+    "consolidator",
 ]
 
 DEFAULT_MODEL = "anthropic:claude-sonnet-4-6"

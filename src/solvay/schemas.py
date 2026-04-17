@@ -109,7 +109,5 @@ class SolverLoopState(BaseModel):
 
     # Output
     final_draft: SolutionDraft | None = None
-    termination_reason: Literal[
-        "consensus", "budget_exhausted", "judge_forced"
-    ] | None = None
+    termination_reason: Literal["consensus", "budget_exhausted", "judge_forced"] | None = None
     unresolved_blockers: bool = False

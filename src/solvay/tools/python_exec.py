@@ -84,9 +84,7 @@ def python_exec(
                 compiled = compile(tree, "<solvay>", "exec")
                 exec(compiled, _shared_namespace)
             # Eval the last expression
-            expr_code = compile(
-                ast.Expression(body=last_expr_node.value), "<solvay>", "eval"
-            )
+            expr_code = compile(ast.Expression(body=last_expr_node.value), "<solvay>", "eval")
             result = eval(expr_code, _shared_namespace)
             if result is not None:
                 last_repr = repr(result)
