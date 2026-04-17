@@ -19,6 +19,18 @@ app = typer.Typer(
 def solve(
     statement: str | None = typer.Argument(None, help="The physics problem statement."),
     file: Path | None = typer.Option(None, "--file", "-f", help="Read problem from a text file."),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        "-m",
+        help=(
+            "Override the model for all roles. Accepts any string understood "
+            "by langchain.chat_models.init_chat_model, e.g. "
+            "'anthropic:claude-sonnet-4-6', 'openai:gpt-4o', "
+            "'google_genai:gemini-2.5-pro', or 'ollama:qwen3.5'. "
+            "Takes precedence over the SOLVAY_MODEL env var."
+        ),
+    ),
     show_notebook: bool = typer.Option(
         False, "--show-notebook", help="Show full lab notebook after solving."
     ),
@@ -55,7 +67,8 @@ def solve(
     )
 
     persistence_config = PersistenceConfig(enabled=not no_persist)
-    config = SolvayConfig(persistence=persistence_config)
+    config = SolvayConfig(persistence=persistence_config, default_model=model)
+    typer.echo(f"Model: {config.model_for('orchestrator')}\n")
 
     journal_snapshot = ""
     if persistence_config.enabled:

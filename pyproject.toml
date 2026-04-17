@@ -22,6 +22,7 @@ dependencies = [
     "pydantic>=2.10",
     "tavily-python>=0.5",
     "RestrictedPython>=7.4",
+    "langchain-ollama>=1.1.0",
 ]
 
 [project.scripts]

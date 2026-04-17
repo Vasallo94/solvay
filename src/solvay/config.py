@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -16,6 +17,15 @@ Role = Literal[
 ]
 
 DEFAULT_MODEL = "anthropic:claude-sonnet-4-6"
+"""Fallback model used when nothing else is configured. Accepts any string
+understood by :func:`langchain.chat_models.init_chat_model`, e.g.
+``"anthropic:claude-sonnet-4-6"``, ``"openai:gpt-4o"``,
+``"google_genai:gemini-2.5-pro"``, or ``"ollama:qwen3.5"``."""
+
+ENV_MODEL_VAR = "SOLVAY_MODEL"
+"""Environment variable consulted when neither ``models[role]`` nor
+``default_model`` is set. Useful for running against local Ollama without
+touching code: ``SOLVAY_MODEL=ollama:qwen3.5 uv run solvay solve ...``."""
 
 
 @dataclass(frozen=True)
@@ -50,14 +60,30 @@ class PersistenceConfig:
 
 @dataclass
 class SolvayConfig:
-    """Top-level configuration for a Solvay run."""
+    """Top-level configuration for a Solvay run.
+
+    Model resolution in :meth:`model_for` follows this precedence:
+
+    1. ``models[role]`` -- explicit per-role override
+    2. ``default_model`` -- global override (typically set from ``--model`` CLI flag)
+    3. ``$SOLVAY_MODEL`` environment variable
+    4. :data:`DEFAULT_MODEL` hardcoded fallback
+    """
 
     models: dict[Role, str] = field(default_factory=lambda: {})
+    default_model: str | None = None
     solver_loop: SolverLoopConfig = field(default_factory=SolverLoopConfig)
     python_exec: PythonExecConfig = field(default_factory=PythonExecConfig)
     notebook: NotebookConfig = field(default_factory=NotebookConfig)
     persistence: PersistenceConfig = field(default_factory=PersistenceConfig)
 
     def model_for(self, role: Role) -> str:
-        """Return the model string for a given role, falling back to default."""
-        return self.models.get(role, DEFAULT_MODEL)
+        """Return the model string for a given role, walking the precedence ladder."""
+        if role in self.models:
+            return self.models[role]
+        if self.default_model is not None:
+            return self.default_model
+        env_override = os.environ.get(ENV_MODEL_VAR)
+        if env_override:
+            return env_override
+        return DEFAULT_MODEL
