@@ -1,0 +1,12 @@
+{
+  "id": "tipler-4.1",
+  "source": "Tipler - Physics for Scientists, 6th ed.",
+  "domain": "mechanics",
+  "statement": "A block of mass 2 kg slides down a frictionless incline of angle 30 degrees. Find the acceleration of the block.",
+  "expected": {
+    "value": "4.905",
+    "unit": "m/s^2",
+    "tolerance_rel": 0.01
+  },
+  "tags": ["incline", "newton", "1d"]
+}
