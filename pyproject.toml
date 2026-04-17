@@ -50,6 +50,10 @@ plugins = ["pydantic.mypy"]
 module = ["sympy", "sympy.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["tavily", "tavily.*"]
+ignore_missing_imports = true
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
