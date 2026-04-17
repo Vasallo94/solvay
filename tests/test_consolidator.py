@@ -15,7 +15,9 @@ class TestParseConsolidatorResponse:
                 {
                     "role": "solver",
                     "iteration": 1,
-                    "content": "Lagrangian approach worked better than Newtonian for coupled systems.",
+                    "content": (
+                        "Lagrangian approach worked better than Newtonian for coupled systems."
+                    ),
                 },
                 {
                     "role": "verifier",
