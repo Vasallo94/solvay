@@ -79,6 +79,14 @@ class JournalEntry(BaseModel):
     content: str
 
 
+class JournalEntryList(BaseModel):
+    """Wrapper around ``list[JournalEntry]`` used as the consolidator's
+    ``response_format``. langchain rejects bare ``GenericAlias`` schemas, so
+    the list must be nested inside a Pydantic model."""
+
+    entries: list[JournalEntry] = Field(default_factory=list)
+
+
 class CritiqueEntry(BaseModel):
     """One iteration of the solver-critique loop: the draft and its verdicts."""
 

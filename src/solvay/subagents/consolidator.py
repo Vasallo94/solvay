@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from solvay.config import SolvayConfig
-from solvay.schemas import JournalEntry
+from solvay.schemas import JournalEntry, JournalEntryList
 from solvay.subagents import load_prompt
 
 
@@ -34,20 +34,21 @@ def create_consolidator_subagent(config: SolvayConfig) -> dict[str, Any]:
         "system_prompt": load_prompt("consolidator"),
         "model": config.model_for("consolidator"),
         "tools": [],
-        "response_format": list[JournalEntry],
+        "response_format": JournalEntryList,
     }
 
 
 def parse_consolidator_response(response_text: str) -> list[JournalEntry]:
     """Parse the consolidator's JSON response into JournalEntry objects.
 
+    Accepts both the current wrapped format ``{"entries": [...]}`` emitted
+    under ``JournalEntryList`` and the legacy bare-list ``[...]`` form.
     Best-effort: silently skips items that fail validation, returns an
-    empty list on top-level JSON or shape errors. This is intentional --
-    the consolidator runs at session-end and partial recovery is preferred
-    over hard failure.
+    empty list on top-level JSON or shape errors. The consolidator runs
+    at session-end and partial recovery is preferred over hard failure.
 
     Args:
-        response_text: JSON string expected to be a list of JournalEntry dicts.
+        response_text: JSON string with the consolidator output.
 
     Returns:
         List of JournalEntry objects. Empty list if parsing fails.
@@ -56,6 +57,10 @@ def parse_consolidator_response(response_text: str) -> list[JournalEntry]:
         data = json.loads(response_text)
     except json.JSONDecodeError, TypeError:
         return []
+
+    # Unwrap {"entries": [...]} shape from the Pydantic response_format.
+    if isinstance(data, dict):
+        data = data.get("entries", [])
 
     if not isinstance(data, list):
         return []
