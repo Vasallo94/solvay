@@ -20,8 +20,14 @@ from solvay.tools.url_fetch import url_fetch
 
 
 def _create_web_search_tool() -> Any:
-    """Create the Tavily web search tool function."""
-    tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+    """Create the Tavily web search tool function.
+
+    If ``TAVILY_API_KEY`` is unset the returned callable behaves as a stub
+    that reports the tool as unavailable, so the orchestrator can still run
+    on problems (e.g. pure analytic derivations) that do not need the web.
+    """
+    api_key = os.environ.get("TAVILY_API_KEY")
+    tavily_client = TavilyClient(api_key=api_key) if api_key else None
 
     def web_search(
         query: str,
@@ -38,8 +44,17 @@ def _create_web_search_tool() -> Any:
             include_raw_content: Whether to include raw page content.
 
         Returns:
-            Search results from Tavily.
+            Search results from Tavily, or a structured "unavailable" error
+            when ``TAVILY_API_KEY`` is not configured.
         """
+        if tavily_client is None:
+            return {
+                "results": [],
+                "error": (
+                    "Web search unavailable: TAVILY_API_KEY is not set. "
+                    "Proceed using internal reasoning and the other tools."
+                ),
+            }
         return tavily_client.search(
             query,
             max_results=max_results,
