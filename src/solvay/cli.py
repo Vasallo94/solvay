@@ -7,6 +7,14 @@ import sys
 from pathlib import Path
 
 import typer
+from dotenv import load_dotenv
+
+# Load variables from a project-root ``.env`` file (ANTHROPIC_API_KEY,
+# TAVILY_API_KEY, LANGSMITH_*, SOLVAY_MODEL, ...) before any langchain /
+# langgraph / langsmith imports fire, so those libraries pick the values up
+# on first import. ``override=False`` (the default) means real shell exports
+# still win over ``.env`` -- handy for one-off CLI overrides.
+load_dotenv()
 
 app = typer.Typer(
     name="solvay",
