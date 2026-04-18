@@ -53,6 +53,8 @@ extend-immutable-calls = ["typer.Argument", "typer.Option"]
 python_version = "3.14"
 strict = true
 plugins = ["pydantic.mypy"]
+explicit_package_bases = true
+mypy_path = [".", "src"]
 
 [[tool.mypy.overrides]]
 module = ["sympy", "sympy.*"]
@@ -61,6 +63,9 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = ["tavily", "tavily.*"]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
 
 [project.optional-dependencies]
 dev = [

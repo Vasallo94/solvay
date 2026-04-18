@@ -68,7 +68,7 @@ def run_cmd(
     # lets earlier phases run before Phase 2 is merged.
     try:
         import solvay.benchmark.profiles.bare
-        import solvay.benchmark.profiles.prompted  # type: ignore[import-not-found]  # noqa: F401, RUF100
+        import solvay.benchmark.profiles.prompted
         import solvay.benchmark.profiles.solvay_full  # type: ignore[import-not-found]  # noqa: F401, RUF100
         import solvay.benchmark.profiles.solvay_noweb  # type: ignore[import-not-found]  # noqa: F401, RUF100
         import solvay.benchmark.profiles.tooled  # type: ignore[import-not-found]  # noqa: F401, RUF100
