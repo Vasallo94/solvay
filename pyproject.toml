@@ -28,6 +28,7 @@ dependencies = [
 
 [project.scripts]
 solvay = "solvay.cli:app"
+solvay-bench = "solvay.benchmark.cli:app"
 
 [build-system]
 requires = ["hatchling"]
