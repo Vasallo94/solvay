@@ -67,7 +67,7 @@ def run_cmd(
     # Force import of the built-in profiles so they self-register. The try/except
     # lets earlier phases run before Phase 2 is merged.
     try:
-        import solvay.benchmark.profiles.bare  # type: ignore[import-not-found]  # noqa: F401, RUF100
+        import solvay.benchmark.profiles.bare
         import solvay.benchmark.profiles.prompted  # type: ignore[import-not-found]  # noqa: F401, RUF100
         import solvay.benchmark.profiles.solvay_full  # type: ignore[import-not-found]  # noqa: F401, RUF100
         import solvay.benchmark.profiles.solvay_noweb  # type: ignore[import-not-found]  # noqa: F401, RUF100
