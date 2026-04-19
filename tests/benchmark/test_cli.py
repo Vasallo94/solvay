@@ -47,3 +47,35 @@ def test_cli_run_invokes_matrix(tmp_path: Path) -> None:
     PROFILES.pop("cli-fake", None)
     assert result.exit_code == 0, result.stdout
     assert out.exists()
+
+
+def test_cli_generate_invokes_pipeline(tmp_path: Path, monkeypatch) -> None:
+    from solvay.benchmark.generator.pipeline import GenerationReport
+
+    called: dict[str, object] = {}
+
+    def fake_generate_batch(skeletons, out_dir, config):  # type: ignore[no-untyped-def]
+        called["skeleton_count"] = len(skeletons)
+        called["out_dir"] = out_dir
+        return GenerationReport(attempted=len(skeletons), written=len(skeletons))
+
+    monkeypatch.setattr("solvay.benchmark.cli.generate_batch", fake_generate_batch)
+
+    runner_cli = CliRunner()
+    result = runner_cli.invoke(
+        app,
+        [
+            "generate",
+            "--domain",
+            "mechanics",
+            "--compose",
+            "pendulum,lorentz",
+            "--n",
+            "3",
+            "--out",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert called["skeleton_count"] == 3
+    assert called["out_dir"] == tmp_path

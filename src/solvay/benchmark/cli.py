@@ -114,5 +114,59 @@ def run_cmd(
     typer.echo(f"Wrote {path}")
 
 
+from solvay.benchmark.generator.pipeline import generate_batch  # noqa: E402
+from solvay.benchmark.generator.skeleton import GenerationSkeleton  # noqa: E402
+
+
+@app.command("generate")
+def generate_cmd(
+    domain: Annotated[str, typer.Option("--domain", help="Physics domain.")] = "mechanics",
+    compose: Annotated[
+        str,
+        typer.Option(
+            "--compose",
+            help="Comma-separated concepts to compose in each generated problem.",
+        ),
+    ] = "",
+    n: Annotated[int, typer.Option("--n", min=1)] = 5,
+    approach: Annotated[
+        str, typer.Option("--approach", help="'backward' or 'forward'.")
+    ] = "backward",
+    difficulty: Annotated[
+        str, typer.Option("--difficulty", help="'easy' | 'intermediate' | 'hard'.")
+    ] = "intermediate",
+    seed: Annotated[int, typer.Option("--seed", help="Starting seed.")] = 1,
+    out: Annotated[
+        Path, typer.Option("--out", help="Output directory for generated problem JSONs.")
+    ] = Path("benchmark/problems/mechanics"),
+) -> None:
+    """Generate a batch of synthetic problems."""
+    from solvay.benchmark.config import BenchConfig
+
+    concepts = [c.strip() for c in compose.split(",") if c.strip()]
+    if not concepts:
+        typer.echo("--compose must list at least one concept.", err=True)
+        raise typer.Exit(2)
+
+    skeletons = [
+        GenerationSkeleton(
+            domain=domain,
+            compose=concepts,
+            difficulty=difficulty,  # type: ignore[arg-type]
+            approach=approach,  # type: ignore[arg-type]
+            seed=seed + i,
+        )
+        for i in range(n)
+    ]
+    report = generate_batch(skeletons=skeletons, out_dir=out, config=BenchConfig())
+    typer.echo(
+        f"Attempted: {report.attempted}  "
+        f"Written: {report.written}  "
+        f"Rejected (compose): {report.rejected_compose}  "
+        f"Rejected (verification): {report.rejected_verification}  "
+        f"Contamination: {report.contamination_breakdown}"
+    )
+
+
 if __name__ == "__main__":
     app()
