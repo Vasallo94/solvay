@@ -64,9 +64,7 @@ def test_format_harness_note_uses_required_contract() -> None:
         timestamp="2026-05-20T12:34:56Z",
     )
     text = format_harness_note(note)
-    assert text.startswith(
-        "## [harness-note] 2026-05-20T12:34:56Z role=solver severity=warning"
-    )
+    assert text.startswith("## [harness-note] 2026-05-20T12:34:56Z role=solver severity=warning")
     assert "Symptom: python_exec rejected an import." in text
     assert "Artifacts: /workspace/artifacts/run-1/" in text
 

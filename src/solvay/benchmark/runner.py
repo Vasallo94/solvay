@@ -29,13 +29,9 @@ class MatrixSpec:
 
 def _git_commit() -> tuple[str, bool]:
     try:
-        sha = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], text=True
-        ).strip()
-        dirty = bool(
-            subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
-        )
-    except (OSError, subprocess.CalledProcessError):
+        sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+        dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], text=True).strip())
+    except OSError, subprocess.CalledProcessError:
         return "unknown", False
     return sha, dirty
 
@@ -53,7 +49,7 @@ def _evaluate_correct(answer_raw: str, expected: Expected) -> bool:
         return False
     try:
         target = float(sympy.sympify(expected.value).evalf())
-    except (ValueError, TypeError, sympy.SympifyError):
+    except ValueError, TypeError, sympy.SympifyError:
         return False
     for num in numbers:
         try:

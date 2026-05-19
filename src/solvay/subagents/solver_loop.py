@@ -74,9 +74,7 @@ def build_solver_loop_graph(
             "final_draft": updates.get("final_draft", state.final_draft),
             "termination_reason": updates.get("termination_reason", state.termination_reason),
             "iterations_consumed": state.iteration,
-            "unresolved_blockers": updates.get(
-                "unresolved_blockers", state.unresolved_blockers
-            ),
+            "unresolved_blockers": updates.get("unresolved_blockers", state.unresolved_blockers),
             "blocked_topic": state.blocked_topic,
             "critique_history": state.critique_history,
         }

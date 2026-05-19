@@ -24,9 +24,7 @@ def solvay_noweb_runner(problem: Problem, model: str, config: BenchConfig) -> Pr
         agent = create_solvay_agent(scfg)
         t0 = time.monotonic()
         try:
-            result = agent.invoke(
-                {"messages": [{"role": "user", "content": problem.statement}]}
-            )
+            result = agent.invoke({"messages": [{"role": "user", "content": problem.statement}]})
         except Exception as exc:
             return ProfileResult(
                 answer_raw="",
