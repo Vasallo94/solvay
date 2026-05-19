@@ -28,3 +28,9 @@ venv/
 
 # Local Claude session state
 .claude/
+
+# Local Solvay runtime memory
+.solvay/
+
+# Local benchmark run outputs
+benchmark/runs/

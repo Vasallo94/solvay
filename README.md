@@ -38,8 +38,20 @@ uv run solvay solve --file problem.md --show-notebook --trace trace.json
 uv run solvay solve --model "openai:gpt-4o" "..."
 uv run solvay solve --model "ollama:qwen3.5"  "..."
 
-# Run the benchmark suite
-uv run solvay bench --problems benchmark/problems --out results.json
+# Run the benchmark suite through the matrix runner
+uv run solvay bench --problems benchmark/problems --profiles solvay-noweb --models "ollama:qwen3.5" --out results.jsonl
+```
+
+For a first local Ollama smoke test, start Ollama, pull the model, then run one
+small no-web benchmark profile:
+
+```bash
+ollama pull qwen3.5
+uv run solvay bench \
+  --problems benchmark/problems \
+  --profiles solvay-noweb \
+  --models "ollama:qwen3.5" \
+  --out benchmark/runs/ollama-smoke.jsonl
 ```
 
 ## Observability
@@ -57,7 +69,7 @@ src/solvay/
 ├── prompts/              # markdown system prompts for each role
 ├── subagents/            # parser, researcher, solver, verifier, ...
 └── tools/                # python_exec, dimensional check, url_fetch
-tests/                    # pytest suite (51 tests, ruff + mypy --strict clean)
+tests/                    # pytest suite (ruff + mypy --strict clean)
 benchmark/                # curated physics problems + runner
 docs/superpowers/         # design spec and implementation plan
 ```

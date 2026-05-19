@@ -43,6 +43,17 @@ class SolutionDraft(BaseModel):
     code_trace: list[str]
 
 
+class SolverResponse(BaseModel):
+    """Structured solver response: either a draft or a request for more research."""
+
+    solver_blocked: bool = False
+    blocked_topic: str | None = None
+    method: str | None = None
+    steps: list[str] = Field(default_factory=list)
+    final_answer: Quantity | str | None = None
+    code_trace: list[str] = Field(default_factory=list)
+
+
 class Verdict(BaseModel):
     """Verifier or peer-reviewer judgment on a solution draft."""
 

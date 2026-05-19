@@ -3,19 +3,29 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from deepagents import CompiledSubAgent
+from langchain.agents import create_agent
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import Runnable
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
 from solvay.config import SolvayConfig
+from solvay.schemas import SolutionDraft, SolverResponse, Verdict
+from solvay.subagents import load_prompt
+from solvay.tools.dimensional import check_dimensions
+from solvay.tools.python_exec import python_exec
 
 
 class SolverLoopGraphState(BaseModel):
     """State for the solver loop LangGraph subgraph."""
+
+    # Required by deepagents.CompiledSubAgent. The task tool extracts the final
+    # message from this list and returns it to the parent orchestrator.
+    messages: list[Any] = Field(default_factory=list)
 
     # Inputs
     problem_spec: dict[str, Any]
@@ -44,9 +54,9 @@ class SolverLoopGraphState(BaseModel):
 
 
 def build_solver_loop_graph(
-    solver_model: BaseChatModel,
-    verifier_model: BaseChatModel,
-    reviewer_model: BaseChatModel,
+    solver_model: Runnable[Any, Any] | BaseChatModel,
+    verifier_model: Runnable[Any, Any] | BaseChatModel,
+    reviewer_model: Runnable[Any, Any] | BaseChatModel,
 ) -> Any:
     """Build and compile the solver loop LangGraph.
 
@@ -58,6 +68,50 @@ def build_solver_loop_graph(
     Returns:
         A compiled LangGraph that can be invoked with SolverLoopGraphState fields.
     """
+
+    def _json_payload(state: SolverLoopGraphState, updates: dict[str, Any]) -> str:
+        payload = {
+            "final_draft": updates.get("final_draft", state.final_draft),
+            "termination_reason": updates.get("termination_reason", state.termination_reason),
+            "iterations_consumed": state.iteration,
+            "unresolved_blockers": updates.get(
+                "unresolved_blockers", state.unresolved_blockers
+            ),
+            "blocked_topic": state.blocked_topic,
+            "critique_history": state.critique_history,
+        }
+        return json.dumps(payload, default=str)
+
+    def _parse_json_response(content: Any) -> dict[str, Any]:
+        if isinstance(content, str):
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError:
+                return {}
+            return parsed if isinstance(parsed, dict) else {}
+        return {}
+
+    def _invoke_structured(runnable: Runnable[Any, Any] | BaseChatModel, prompt: str) -> Any:
+        if isinstance(runnable, BaseChatModel):
+            response = runnable.invoke([HumanMessage(content=prompt)])
+            content = (
+                response.content if isinstance(response.content, str) else str(response.content)
+            )
+            return _parse_json_response(content)
+
+        agent_runnable = cast(Runnable[Any, Any], runnable)
+        result = agent_runnable.invoke({"messages": [HumanMessage(content=prompt)]})
+        if isinstance(result, dict):
+            structured = result.get("structured_response")
+            if structured is not None:
+                if hasattr(structured, "model_dump"):
+                    return structured.model_dump()
+                return structured
+            messages = result.get("messages")
+            if messages:
+                last_message = messages[-1]
+                return _parse_json_response(getattr(last_message, "content", ""))
+        return {}
 
     def solve(state: SolverLoopGraphState) -> dict[str, Any]:
         """Invoke solver LLM to produce a SolutionDraft or signal blocked."""
@@ -75,13 +129,7 @@ def build_solver_loop_graph(
             )
 
         prompt = "\n\n".join(prompt_parts)
-        response = solver_model.invoke([HumanMessage(content=prompt)])
-        content = response.content if isinstance(response.content, str) else str(response.content)
-
-        try:
-            parsed = json.loads(content)
-        except json.JSONDecodeError:
-            parsed = {}
+        parsed = _invoke_structured(solver_model, prompt)
 
         if parsed.get("solver_blocked"):
             return {
@@ -90,9 +138,14 @@ def build_solver_loop_graph(
                 "blocked_topic": parsed.get("blocked_topic"),
             }
 
+        try:
+            draft = SolutionDraft.model_validate(parsed).model_dump()
+        except ValueError:
+            draft = parsed
+
         return {
             "iteration": iteration,
-            "current_draft": parsed,
+            "current_draft": draft,
             "solver_blocked": False,
         }
 
@@ -109,32 +162,17 @@ def build_solver_loop_graph(
             f"Problem: {json.dumps(problem)}\n\nSolution draft to review: {json.dumps(draft)}"
         )
 
-        verifier_resp = verifier_model.invoke([HumanMessage(content=critique_prompt)])
-        reviewer_resp = reviewer_model.invoke([HumanMessage(content=critique_prompt)])
+        verifier_verdict = _invoke_structured(verifier_model, critique_prompt)
+        reviewer_verdict = _invoke_structured(reviewer_model, critique_prompt)
 
-        v_content = (
-            verifier_resp.content
-            if isinstance(verifier_resp.content, str)
-            else str(verifier_resp.content)
-        )
-        r_content = (
-            reviewer_resp.content
-            if isinstance(reviewer_resp.content, str)
-            else str(reviewer_resp.content)
-        )
-
-        try:
-            verifier_verdict = json.loads(v_content)
-        except json.JSONDecodeError:
+        if not isinstance(verifier_verdict, dict) or not verifier_verdict:
             verifier_verdict = {
                 "approved": False,
                 "issues": ["Failed to parse verifier response"],
                 "severity": "blocker",
             }
 
-        try:
-            reviewer_verdict = json.loads(r_content)
-        except json.JSONDecodeError:
+        if not isinstance(reviewer_verdict, dict) or not reviewer_verdict:
             reviewer_verdict = {
                 "approved": False,
                 "issues": ["Failed to parse reviewer response"],
@@ -162,26 +200,32 @@ def build_solver_loop_graph(
         max_iterations = state.max_iterations
 
         if state.solver_blocked:
-            return {
+            updates: dict[str, Any] = {
                 "final_draft": state.current_draft,
                 "termination_reason": "judge_forced",
             }
+            updates["messages"] = [AIMessage(content=_json_payload(state, updates))]
+            return updates
 
         if verifier.get("approved") and reviewer.get("approved"):
-            return {
+            updates = {
                 "final_draft": state.current_draft,
                 "termination_reason": "consensus",
             }
+            updates["messages"] = [AIMessage(content=_json_payload(state, updates))]
+            return updates
 
         if iteration >= max_iterations:
             has_blockers = (
                 verifier.get("severity") == "blocker" or reviewer.get("severity") == "blocker"
             )
-            return {
+            updates = {
                 "final_draft": state.current_draft,
                 "termination_reason": "budget_exhausted",
                 "unresolved_blockers": has_blockers,
             }
+            updates["messages"] = [AIMessage(content=_json_payload(state, updates))]
+            return updates
 
         return {}
 
@@ -205,7 +249,11 @@ def build_solver_loop_graph(
     return builder.compile()
 
 
-def create_solver_subagent(config: SolvayConfig) -> CompiledSubAgent:
+def create_solver_subagent(
+    config: SolvayConfig,
+    web_search_tool: Any,
+    url_fetch_tool: Any,
+) -> CompiledSubAgent:
     """Create the solver CompiledSubAgent wrapping the loop subgraph.
 
     Args:
@@ -216,9 +264,27 @@ def create_solver_subagent(config: SolvayConfig) -> CompiledSubAgent:
     """
     from langchain.chat_models import init_chat_model
 
-    solver_model = init_chat_model(config.model_for("solver"))
-    verifier_model = init_chat_model(config.model_for("verifier"))
-    reviewer_model = init_chat_model(config.model_for("peer_reviewer"))
+    solver_model = create_agent(
+        init_chat_model(config.model_for("solver")),
+        system_prompt=load_prompt("solver"),
+        tools=[python_exec, check_dimensions, web_search_tool, url_fetch_tool],
+        response_format=SolverResponse,
+        name="solver",
+    )
+    verifier_model = create_agent(
+        init_chat_model(config.model_for("verifier")),
+        system_prompt=load_prompt("verifier"),
+        tools=[python_exec, check_dimensions],
+        response_format=Verdict,
+        name="verifier",
+    )
+    reviewer_model = create_agent(
+        init_chat_model(config.model_for("peer_reviewer")),
+        system_prompt=load_prompt("peer_reviewer"),
+        tools=[python_exec, web_search_tool],
+        response_format=Verdict,
+        name="peer_reviewer",
+    )
 
     graph = build_solver_loop_graph(
         solver_model=solver_model,

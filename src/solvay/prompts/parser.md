@@ -19,9 +19,13 @@ Return a JSON object with these fields:
 
 ## Rules
 
+- Before acting: read `/workspace/lab_notebook.md` if it exists.
 - Identify the physics domain from context clues.
 - Extract ALL numerical values with their units.
 - List implicit assumptions (e.g., "negligible air resistance").
 - approach_hints are suggestions only -- the solver may ignore them.
 - If the domain is ambiguous, choose the most likely one.
+- After acting: append a brief entry (at most 4 lines) to
+  `/workspace/lab_notebook.md` if parsing revealed useful assumptions or
+  ambiguity for future agents.
 - All output in English.

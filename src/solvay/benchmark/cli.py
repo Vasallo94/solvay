@@ -23,6 +23,18 @@ def _main() -> None:
     """Solvay benchmark suite."""
 
 
+def _import_builtin_profiles() -> None:
+    """Import built-in profile modules so they self-register."""
+    try:
+        import solvay.benchmark.profiles.bare
+        import solvay.benchmark.profiles.prompted
+        import solvay.benchmark.profiles.solvay_full
+        import solvay.benchmark.profiles.solvay_noweb
+        import solvay.benchmark.profiles.tooled  # noqa: F401
+    except ImportError:
+        pass
+
+
 @app.command("run")
 def run_cmd(
     problems: Annotated[
@@ -64,16 +76,7 @@ def run_cmd(
     from solvay.benchmark.schema import load_problems_dir
     from solvay.config import DEFAULT_MODEL
 
-    # Force import of the built-in profiles so they self-register. The try/except
-    # lets earlier phases run before Phase 2 is merged.
-    try:
-        import solvay.benchmark.profiles.bare
-        import solvay.benchmark.profiles.prompted
-        import solvay.benchmark.profiles.solvay_full
-        import solvay.benchmark.profiles.solvay_noweb
-        import solvay.benchmark.profiles.tooled  # noqa: F401
-    except ImportError:
-        pass
+    _import_builtin_profiles()
 
     root = problems / domain if domain else problems
     all_problems = load_problems_dir(root)

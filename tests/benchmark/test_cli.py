@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from solvay.benchmark.cli import app
+from solvay.benchmark.config import BenchConfig
+from solvay.benchmark.generator.skeleton import GenerationSkeleton
+from solvay.benchmark.schema import Problem
 
 
 def test_cli_app_exists() -> None:
@@ -19,7 +23,7 @@ def test_cli_app_exists() -> None:
 def test_cli_run_invokes_matrix(tmp_path: Path) -> None:
     from solvay.benchmark.profiles import PROFILES, Profile, ProfileResult, register
 
-    def runner(problem, model, config):  # type: ignore[no-untyped-def]
+    def runner(problem: Problem, model: str, config: BenchConfig) -> ProfileResult:
         return ProfileResult(
             answer_raw="4.905",
             answer_extracted="4.905",
@@ -49,12 +53,16 @@ def test_cli_run_invokes_matrix(tmp_path: Path) -> None:
     assert out.exists()
 
 
-def test_cli_generate_invokes_pipeline(tmp_path: Path, monkeypatch) -> None:
+def test_cli_generate_invokes_pipeline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from solvay.benchmark.generator.pipeline import GenerationReport
 
     called: dict[str, object] = {}
 
-    def fake_generate_batch(skeletons, out_dir, config):  # type: ignore[no-untyped-def]
+    def fake_generate_batch(
+        skeletons: list[GenerationSkeleton],
+        out_dir: Path,
+        config: BenchConfig,
+    ) -> GenerationReport:
         called["skeleton_count"] = len(skeletons)
         called["out_dir"] = out_dir
         return GenerationReport(attempted=len(skeletons), written=len(skeletons))

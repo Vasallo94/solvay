@@ -6,8 +6,10 @@ import datetime as dt
 import difflib
 import json
 import re
+from typing import Literal, cast
 
 from langchain.chat_models import init_chat_model
+from langchain_core.language_models import BaseChatModel
 
 from solvay.benchmark.config import BenchConfig
 from solvay.benchmark.schema import Contamination, Problem
@@ -15,15 +17,18 @@ from solvay.benchmark.schema import Contamination, Problem
 PROBE_METHOD_ID = "model-recall-probe-v1"
 
 
-def _parse_json(text: str) -> dict:
+def _parse_json(text: str) -> dict[str, object]:
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
     try:
-        return json.loads(raw)
+        payload = json.loads(raw)
     except json.JSONDecodeError:
         return {}
+    if not isinstance(payload, dict):
+        return {}
+    return cast(dict[str, object], payload)
 
 
-def _recognition_probe(chat, problem: Problem) -> float:
+def _recognition_probe(chat: BaseChatModel, problem: Problem) -> float:
     msg = (
         "Do you recognize the following physics problem? If yes, name the source "
         "(textbook, competition, year). Answer in JSON with keys 'recognized' "
@@ -35,7 +40,7 @@ def _recognition_probe(chat, problem: Problem) -> float:
     return 1.0 if obj.get("recognized") and obj.get("source") else 0.0
 
 
-def _continuation_probe(chat, problem: Problem) -> float:
+def _continuation_probe(chat: BaseChatModel, problem: Problem) -> float:
     cut = max(20, int(len(problem.statement) * 0.3))
     head = problem.statement[:cut]
     tail = problem.statement[cut:]
@@ -52,7 +57,7 @@ def _continuation_probe(chat, problem: Problem) -> float:
     return difflib.SequenceMatcher(None, tail.lower(), guess.lower()).ratio()
 
 
-def _cold_answer_probe(chat, problem: Problem) -> float:
+def _cold_answer_probe(chat: BaseChatModel, problem: Problem) -> float:
     msg = (
         "Give ONLY the final numerical or symbolic answer to this physics problem, "
         "no work shown. Return JSON with a single key 'answer'.\n\n"
@@ -76,7 +81,7 @@ def probe_contamination(problem: Problem, config: BenchConfig) -> Contamination:
     ]
     score = sum(scores) / len(scores)
     if score < 0.34:
-        verdict: str = "clean"
+        verdict: Literal["clean", "suspect", "contaminated"] = "clean"
     elif score < 0.67:
         verdict = "suspect"
     else:
@@ -85,5 +90,5 @@ def probe_contamination(problem: Problem, config: BenchConfig) -> Contamination:
         checked_at=dt.datetime.now(dt.UTC).isoformat(),
         method=PROBE_METHOD_ID,
         score=round(score, 3),
-        verdict=verdict,  # type: ignore[arg-type]
+        verdict=verdict,
     )

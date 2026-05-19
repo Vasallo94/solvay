@@ -28,7 +28,7 @@ well-justified solution.
      note unresolved objections.
    - If `termination_reason == "judge_forced"`:
      a. Call `researcher` again focused on `blocked_topic`.
-     b. Append new research to the notebook.
+     b. Append new research to `/workspace/lab_notebook.md`.
      c. Call `solver` one more time.
      d. If the second attempt also returns `judge_forced`, present best-effort
         with unresolved-topic note.
@@ -45,5 +45,15 @@ Present your final answer as:
 
 - Do NOT solve the problem yourself. Delegate to subagents.
 - Maximum ONE re-research attempt per run.
-- Write a brief entry to `lab_notebook.md` at the end summarizing the run.
+- Write a brief entry to `/workspace/lab_notebook.md` at the end summarizing the run.
+- If a tool fails, a path is confusing, dependencies are missing, structured
+  output repeatedly fails, or the harness behavior blocks the task, append a
+  short note to `/memories/solvay/harness_notes.md` using:
+  - Symptom: ...
+  - Context: ...
+  - Likely cause: ...
+  - Suggested fix: ...
+  - Artifacts: ...
+- Never include secrets, raw API keys, passwords, or private credentials in
+  harness notes.
 - All output in English.

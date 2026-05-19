@@ -57,10 +57,7 @@ def _unit_is_known(unit_str: str) -> bool:
         return False
     if not hasattr(parsed, "atoms"):
         return False
-    for symbol in parsed.atoms(sympy.Symbol):
-        if str(symbol) not in known_names:
-            return False
-    return True
+    return all(str(symbol) in known_names for symbol in parsed.atoms(sympy.Symbol))
 
 
 def verify_problem(problem: Problem) -> VerifyOutcome:
@@ -80,6 +77,6 @@ def verify_problem(problem: Problem) -> VerifyOutcome:
                     ok=False, method=method, reason=f"unknown unit: {problem.expected.unit}"
                 )
             return VerifyOutcome(ok=True, method=method)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return VerifyOutcome(ok=False, method=method, reason=str(exc)[:200])
     return VerifyOutcome(ok=False, method=method, reason=f"unknown method: {method}")

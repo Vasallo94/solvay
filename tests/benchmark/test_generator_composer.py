@@ -8,7 +8,6 @@ from solvay.benchmark.config import BenchConfig
 from solvay.benchmark.generator.composer import compose_problem
 from solvay.benchmark.generator.skeleton import GenerationSkeleton
 
-
 _VALID_JSON = """
 {
   "id": "synth-mech-TEST",

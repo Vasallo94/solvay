@@ -12,7 +12,6 @@ from solvay.benchmark.config import BenchConfig
 from solvay.benchmark.generator.skeleton import GenerationSkeleton
 from solvay.benchmark.schema import Problem
 
-
 _COMPOSER_SYSTEM = """\
 You are a physics problem-writer for a benchmark that measures reasoning capacity.
 Your job: produce ONE problem that composes the listed concepts in a way that does

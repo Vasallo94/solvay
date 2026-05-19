@@ -58,6 +58,15 @@ class PersistenceConfig:
     enabled: bool = True
 
 
+@dataclass(frozen=True)
+class HarnessConfig:
+    """Configuration for native DeepAgents harness features."""
+
+    native_memory_enabled: bool = True
+    memory_namespace: str = "solvay"
+    persist_harness_notes: bool = True
+
+
 @dataclass
 class SolvayConfig:
     """Top-level configuration for a Solvay run.
@@ -76,6 +85,7 @@ class SolvayConfig:
     python_exec: PythonExecConfig = field(default_factory=PythonExecConfig)
     notebook: NotebookConfig = field(default_factory=NotebookConfig)
     persistence: PersistenceConfig = field(default_factory=PersistenceConfig)
+    harness: HarnessConfig = field(default_factory=HarnessConfig)
 
     def model_for(self, role: Role) -> str:
         """Return the model string for a given role, walking the precedence ladder."""
