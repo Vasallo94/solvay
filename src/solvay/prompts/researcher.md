@@ -25,7 +25,4 @@ Return a JSON object with:
 - Focus on PHYSICS THEORY, not code or implementation.
 - Search for the specific physics domain and topic.
 - Include canonical equations for the problem domain.
-- Before acting: read `lab_notebook.md` for context from previous agents.
-- After acting: append a brief entry (at most 4 lines) to `lab_notebook.md` if you
-  found anything useful for future agents.
 - All output in English.

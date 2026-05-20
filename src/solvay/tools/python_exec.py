@@ -6,6 +6,7 @@ import ast
 import io
 import signal
 import sys
+import threading
 import time
 import traceback
 from typing import Any
@@ -50,12 +51,14 @@ def python_exec(
 
     start = time.perf_counter_ns()
 
-    # Timeout handler (Unix only)
+    # Timeout handler (Unix main-thread only — SIGALRM cannot be set from subthreads)
+    _in_main_thread = threading.current_thread() is threading.main_thread()
+
     def _timeout_handler(signum: int, frame: Any) -> None:
         raise TimeoutError(f"Timed out after {timeout_seconds}s")
 
     old_handler = None
-    if hasattr(signal, "SIGALRM"):
+    if hasattr(signal, "SIGALRM") and _in_main_thread:
         old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
         signal.alarm(timeout_seconds)
 
@@ -107,7 +110,7 @@ def python_exec(
     finally:
         sys.stdout = old_stdout
         sys.stderr = old_stderr
-        if hasattr(signal, "SIGALRM"):
+        if hasattr(signal, "SIGALRM") and _in_main_thread:
             signal.alarm(0)
             if old_handler is not None:
                 signal.signal(signal.SIGALRM, old_handler)

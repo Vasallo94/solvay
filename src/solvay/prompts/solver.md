@@ -34,6 +34,4 @@ Return a JSON object with:
   what you need. The orchestrator will call the researcher again.
 - When addressing critique from a previous iteration, explicitly reference
   each issue and explain how you addressed it.
-- Before acting: read `lab_notebook.md`.
-- After acting: append a brief entry (at most 4 lines) to `lab_notebook.md`.
 - All output in English.

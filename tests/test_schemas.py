@@ -7,7 +7,6 @@ from solvay.schemas import (
     CritiqueEntry,
     DimCheckResult,
     ExecResult,
-    JournalEntry,
     ProblemSpec,
     Quantity,
     ResearchBrief,
@@ -123,15 +122,6 @@ class TestDimCheckResult:
         )
         assert r.ok
 
-
-class TestJournalEntry:
-    def test_valid_entry(self) -> None:
-        e = JournalEntry(
-            role="solver",
-            iteration=2,
-            content="Used Lagrangian approach instead of Newtonian.",
-        )
-        assert e.role == "solver"
 
 
 class TestCritiqueEntry:

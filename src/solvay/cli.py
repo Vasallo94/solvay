@@ -16,6 +16,13 @@ from dotenv import load_dotenv
 # still win over ``.env`` -- handy for one-off CLI overrides.
 load_dotenv()
 
+# Disable LangSmith tracing when no API key is configured to avoid noisy
+# 403 errors on every model call.
+import os as _os
+if not _os.environ.get("LANGSMITH_API_KEY"):
+    _os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
+    _os.environ.setdefault("LANGSMITH_TRACING", "false")
+
 app = typer.Typer(
     name="solvay",
     help="Multi-agent physics problem solver.",
@@ -39,14 +46,8 @@ def solve(
             "Takes precedence over the SOLVAY_MODEL env var."
         ),
     ),
-    show_notebook: bool = typer.Option(
-        False, "--show-notebook", help="Show full lab notebook after solving."
-    ),
     trace: Path | None = typer.Option(
         None, "--trace", help="Dump full trace as JSON to this file."
-    ),
-    no_persist: bool = typer.Option(
-        False, "--no-persist", help="Disable cross-run journal persistence."
     ),
 ) -> None:
     """Solve a physics problem using the multi-agent system."""
@@ -68,50 +69,127 @@ def solve(
     typer.echo(f"Solving: {problem[:80]}{'...' if len(problem) > 80 else ''}\n")
 
     from solvay.agent import create_solvay_agent
-    from solvay.config import PersistenceConfig, SolvayConfig
-    from solvay.persistence import (
-        load_journal_snapshot,
-        save_session_notebook,
-    )
+    from solvay.config import SolvayConfig
 
-    persistence_config = PersistenceConfig(enabled=not no_persist)
-    config = SolvayConfig(persistence=persistence_config, default_model=model)
+    config = SolvayConfig(default_model=model)
     typer.echo(f"Model: {config.model_for('orchestrator')}\n")
-
-    journal_snapshot = ""
-    if persistence_config.enabled:
-        journal_snapshot = load_journal_snapshot(persistence_config)
 
     agent = create_solvay_agent(config)
 
-    user_message = problem
-    if journal_snapshot:
-        user_message += (
-            f"\n\n---\nPrevious session learnings (from lab journal):\n{journal_snapshot}\n---"
-        )
-
-    result = agent.invoke({"messages": [{"role": "user", "content": user_message}]})
+    result = agent.invoke({"messages": [{"role": "user", "content": problem}]})
 
     final_message = result["messages"][-1].content
     typer.echo("=" * 60)
     typer.echo(final_message)
     typer.echo("=" * 60)
 
-    if show_notebook:
-        files = result.get("files", {})
-        notebook = files.get("/lab_notebook.md", {}).get("content", "(no notebook found)")
-        typer.echo("\n--- Lab Notebook ---")
-        typer.echo(notebook)
-
     if trace is not None:
         trace.write_text(json.dumps(result, default=str, indent=2), encoding="utf-8")
         typer.echo(f"\nTrace saved to {trace}")
 
-    if persistence_config.enabled:
-        files = result.get("files", {})
-        notebook_content = files.get("/lab_notebook.md", {}).get("content", "")
-        if notebook_content:
-            save_session_notebook(persistence_config, problem[:40], notebook_content)
+
+@app.command()
+def chat(
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        "-m",
+        help="Override the model for all roles.",
+    ),
+) -> None:
+    """Interactive REPL — chat with the Solvay physics solver."""
+    import time
+
+    from solvay.agent import create_solvay_agent
+    from solvay.config import SolvayConfig
+
+    config = SolvayConfig(default_model=model)
+    typer.echo(f"Solvay  model: {config.model_for('orchestrator')}")
+    typer.echo("Type a physics problem. Ctrl+C to exit.\n")
+
+    agent = create_solvay_agent(config)
+    messages: list[dict[str, str]] = []
+
+    while True:
+        try:
+            problem = input("\033[1;32mYou:\033[0m ").strip()
+        except (KeyboardInterrupt, EOFError):
+            typer.echo("\nBye!")
+            break
+
+        if not problem:
+            continue
+
+        messages.append({"role": "user", "content": problem})
+        final_content = ""
+        seen_subagents: list[str] = []
+        subagent_start = time.monotonic()
+
+        try:
+            for chunk in agent.stream(
+                {"messages": list(messages)},
+                stream_mode="updates",
+                subgraphs=True,
+                version="v2",
+            ):
+                if not isinstance(chunk, dict):
+                    continue
+
+                ns = chunk.get("ns", ())
+                data = chunk.get("data", {})
+
+                if not isinstance(data, dict):
+                    continue
+
+                for _node, update in data.items():
+                    if not isinstance(update, dict):
+                        continue
+
+                    raw_msgs = update.get("messages", [])
+                    if hasattr(raw_msgs, "value"):
+                        raw_msgs = raw_msgs.value
+                    if not isinstance(raw_msgs, list):
+                        continue
+
+                    for msg in raw_msgs:
+                        # Detect task() tool calls → subagent dispatch
+                        for tc in getattr(msg, "tool_calls", []):
+                            if tc.get("name") == "task":
+                                st = tc.get("args", {}).get("subagent_type", "")
+                                if st and st not in seen_subagents:
+                                    if seen_subagents:
+                                        elapsed = time.monotonic() - subagent_start
+                                        typer.echo(
+                                            f"  \033[32m✓\033[0m {seen_subagents[-1]}"
+                                            f"  ({elapsed:.0f}s)"
+                                        )
+                                    seen_subagents.append(st)
+                                    subagent_start = time.monotonic()
+                                    typer.echo(f"  \033[36m⟳\033[0m {st}...")
+
+                        # Track final AI message from root namespace
+                        if not ns:
+                            content = getattr(msg, "content", None)
+                            if content and isinstance(content, str):
+                                final_content = content
+
+            if seen_subagents:
+                elapsed = time.monotonic() - subagent_start
+                typer.echo(
+                    f"  \033[32m✓\033[0m {seen_subagents[-1]}  ({elapsed:.0f}s)"
+                )
+
+        except KeyboardInterrupt:
+            typer.echo("\n\033[33mInterrupted.\033[0m\n")
+            messages.pop()
+            continue
+
+        if final_content:
+            typer.echo(f"\n\033[1;34mSolvay:\033[0m\n{final_content}\n")
+            messages.append({"role": "assistant", "content": final_content})
+        else:
+            typer.echo("\033[33m(no response)\033[0m\n")
+            messages.pop()
 
 
 @app.command()

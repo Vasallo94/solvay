@@ -37,8 +37,6 @@ Canonical docs: https://docs.langchain.com/oss/python/deepagents/overview
 For API lookups prefer Context7 over web search.
 Never rely on memory for deepagents API; always verify against current docs.
 
-## Lab-notebook prompt conventions
+## Interactive mode
 
-- Before acting: read `lab_notebook.md`.
-- After acting: append at most 4 lines if you found anything useful for future agents.
-- Format: `## [<role>] iter <N>\n<content>`
+    uv run solvay chat               # interactive REPL with streaming

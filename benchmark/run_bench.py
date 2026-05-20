@@ -25,9 +25,9 @@ def run_benchmark(
         Dict with overall and per-problem results.
     """
     from solvay.agent import create_solvay_agent
-    from solvay.config import PersistenceConfig, SolvayConfig
+    from solvay.config import SolvayConfig
 
-    config = SolvayConfig(persistence=PersistenceConfig(enabled=False))
+    config = SolvayConfig()
     agent = create_solvay_agent(config)
 
     problem_files = sorted(problems_dir.glob("*.json"))

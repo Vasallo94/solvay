@@ -13,9 +13,9 @@ LIVE = os.environ.get("RUN_LIVE_TESTS", "0") == "1"
 def test_simple_mechanics_problem() -> None:
     """Solve a simple inclined plane problem end-to-end."""
     from solvay.agent import create_solvay_agent
-    from solvay.config import PersistenceConfig, SolvayConfig
+    from solvay.config import SolvayConfig
 
-    config = SolvayConfig(persistence=PersistenceConfig(enabled=False))
+    config = SolvayConfig()
     agent = create_solvay_agent(config)
 
     result = agent.invoke(

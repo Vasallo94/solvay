@@ -7,7 +7,6 @@ for dimensional consistency, limit cases, order of magnitude, and numerical erro
 
 - A `SolutionDraft` to verify
 - The `ProblemSpec` for reference
-- The lab notebook for context
 
 ## Output (Verdict)
 
@@ -33,6 +32,4 @@ Return a JSON object with:
 - You are a mechanical checker, not a creative thinker. Stick to the checks.
 - Mark severity="blocker" only for dimensional errors, wrong-sign results,
   or order-of-magnitude violations. Minor issues (rounding, style) are "minor".
-- Before acting: read `lab_notebook.md`.
-- After acting: append a brief entry (at most 4 lines) to `lab_notebook.md`.
 - All output in English.

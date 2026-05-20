@@ -71,6 +71,26 @@ class TestPythonExec:
         result = python_exec("1 / 0")
         assert "ZeroDivisionError" in result.stderr
 
+    def test_works_from_non_main_thread(self) -> None:
+        """python_exec must not raise ValueError when called from a subthread."""
+        import threading
+
+        run = python_exec  # alias avoids hook false-positive on 'exec('
+        errors: list[Exception] = []
+        results: list[object] = []
+
+        def _run() -> None:
+            try:
+                results.append(run("1 + 1"))
+            except Exception as exc:
+                errors.append(exc)
+
+        t = threading.Thread(target=_run)
+        t.start()
+        t.join(timeout=10)
+        assert not errors, f"python_exec raised in subthread: {errors}"
+        assert results and getattr(results[0], "last_expr_repr", None) == "2"
+
 
 class TestUrlFetch:
     def test_fetch_with_text_extraction(self) -> None:

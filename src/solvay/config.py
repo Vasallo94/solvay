@@ -43,20 +43,6 @@ class PythonExecConfig:
     memory_limit_mb: int = 512
 
 
-@dataclass(frozen=True)
-class NotebookConfig:
-    """Configuration for notebook injection middleware."""
-
-    max_injected_entries: int = 20
-
-
-@dataclass(frozen=True)
-class PersistenceConfig:
-    """Configuration for cross-run persistence."""
-
-    solvay_dir: str = "~/.solvay"
-    enabled: bool = True
-
 
 @dataclass
 class SolvayConfig:
@@ -74,8 +60,6 @@ class SolvayConfig:
     default_model: str | None = None
     solver_loop: SolverLoopConfig = field(default_factory=SolverLoopConfig)
     python_exec: PythonExecConfig = field(default_factory=PythonExecConfig)
-    notebook: NotebookConfig = field(default_factory=NotebookConfig)
-    persistence: PersistenceConfig = field(default_factory=PersistenceConfig)
 
     def model_for(self, role: Role) -> str:
         """Return the model string for a given role, walking the precedence ladder."""
