@@ -64,3 +64,13 @@ class TestRunCollector:
         c.accumulate(SubagentFinished(name="researcher", duration_s=30.0))
         assert [r.name for r in c.subagent_runs] == ["parser", "researcher"]
         assert c.subagent_runs[1].duration_s == 30.0
+
+    def test_tool_call_before_subagent_started_is_ignored(self) -> None:
+        c = self._collector()
+        c.accumulate(ToolCallMade(subagent="parser", tool="python_exec", args_preview="h=10"))
+        assert c.subagent_runs == []
+
+    def test_schema_before_subagent_started_is_ignored(self) -> None:
+        c = self._collector()
+        c.accumulate(SchemaProduced(subagent="parser", schema_type="ProblemSpec", data={}))
+        assert c.subagent_runs == []

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Union
 
@@ -145,7 +146,7 @@ def _try_detect_schema(subagent: str, content: str) -> SchemaProduced | None:
 # ---------------------------------------------------------------------------
 
 
-def parse_stream(agent: Any, problem: str):  # -> Iterator[StreamEvent]
+def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
     """Yield StreamEvents by consuming agent.stream_events(version='v3').
 
     Uses the deepagents 0.6+ high-level streaming API:
@@ -219,7 +220,7 @@ def parse_stream(agent: Any, problem: str):  # -> Iterator[StreamEvent]
     # Capture the coordinator's final message if consolidator didn't set it
     for msg in stream.messages:
         text = getattr(msg, "text", "") or ""
-        if text and len(text) > 20:
+        if text and len(text) > 20 and not final_answer:
             final_answer = text
 
     yield RunFinished(total_s=time.monotonic() - t0, final_answer=final_answer)
