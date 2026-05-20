@@ -8,16 +8,13 @@ from solvay.agent import create_solvay_agent
 from solvay.benchmark.config import BenchConfig
 from solvay.benchmark.profiles import Profile, ProfileResult, register
 from solvay.benchmark.schema import Problem
-from solvay.config import PersistenceConfig, SolvayConfig
+from solvay.config import SolvayConfig
 from solvay.tools.python_exec import reset_exec_state
 
 
 def solvay_full_runner(problem: Problem, model: str, config: BenchConfig) -> ProfileResult:
     reset_exec_state()
-    scfg = SolvayConfig(
-        default_model=model,
-        persistence=PersistenceConfig(enabled=False),
-    )
+    scfg = SolvayConfig(default_model=model)
     agent = create_solvay_agent(scfg)
     t0 = time.monotonic()
     try:

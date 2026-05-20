@@ -33,5 +33,4 @@ def test_solvay_full_profile_uses_full_agent() -> None:
     # The injected model must propagate to SolvayConfig.default_model
     cfg = create_full.call_args.args[0]
     assert cfg.default_model == "anthropic:claude-sonnet-4-6"
-    assert cfg.persistence.enabled is False
     assert result.answer_raw == "2 m/s^2"

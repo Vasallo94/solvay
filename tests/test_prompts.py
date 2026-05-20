@@ -13,7 +13,6 @@ def test_runtime_prompts_reference_native_workspace_notebook() -> None:
         "solver",
         "verifier",
         "peer_reviewer",
-        "consolidator",
     ]:
         prompt = load_prompt(name)
         assert "/workspace/lab_notebook.md" in prompt
