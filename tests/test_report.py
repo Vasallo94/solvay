@@ -90,7 +90,7 @@ class TestGenerateQuarkdown:
 
     def test_final_answer_section(self) -> None:
         qd = generate_quarkdown(_make_collector())
-        assert "Final Answer" in qd
+        assert "## Final Answer" in qd
         assert "v = 14.0 m/s" in qd
 
     def test_run_metadata_table(self) -> None:
@@ -101,8 +101,9 @@ class TestGenerateQuarkdown:
 
     def test_consolidator_not_rendered_as_pipeline_section(self) -> None:
         qd = generate_quarkdown(_make_collector())
-        # Consolidator output goes into Final Answer, not its own numbered section
-        assert "· Consolidation" not in qd
+        # Consolidator section should not appear in pipeline sections (consolidator is special-cased)
+        # Its output goes into the Final Answer section, not a separate numbered section
+        assert "## Consolidator" not in qd
 
     def test_tool_calls_listed(self) -> None:
         qd = generate_quarkdown(_make_collector())

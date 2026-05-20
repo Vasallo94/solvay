@@ -183,7 +183,7 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
             for delta in tool_call.output_deltas:
                 output_parts.append(str(delta))
 
-            full_output = tool_call.output if tool_call.output is not None else "".join(output_parts)
+            full_output = tool_call.output if tool_call.output else "".join(output_parts)
             output_str = full_output if isinstance(full_output, str) else str(full_output)
 
             if tool_call.error is not None:
@@ -212,7 +212,7 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
                     yield schema_evt
                     break
             # Capture consolidator plain-text output as final answer candidate
-            if text and len(text) > 20:
+            if subagent.name == "consolidator" and text and len(text) > 20:
                 final_answer = text
 
         yield SubagentFinished(name=subagent.name, duration_s=time.monotonic() - t_start)

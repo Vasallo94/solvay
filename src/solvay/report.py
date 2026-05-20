@@ -47,15 +47,13 @@ def generate_quarkdown(collector: RunCollector) -> str:
 """
     )
 
-    section_num = 1
     for run in collector.subagent_runs:
         if run.name == "consolidator":
             continue
-        parts.append(_render_subagent_section(section_num, run))
-        section_num += 1
+        parts.append(_render_subagent_section(run))
 
     # Final answer — written by consolidator in Quarkdown format
-    parts.append(f"## {section_num} · Final Answer\n\n")
+    parts.append("## Final Answer\n\n")
     parts.append(collector.final_answer or "*No answer recorded.*")
     parts.append("\n\n---\n\n")
 
@@ -74,9 +72,9 @@ def generate_quarkdown(collector: RunCollector) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _render_subagent_section(num: int, run: SubagentRun) -> str:
+def _render_subagent_section(run: SubagentRun) -> str:
     title = _SECTION_TITLES.get(run.name, run.name.replace("_", " ").title())
-    lines = [f"## {num} · {title}\n\n*{run.name} — {_fmt_duration(run.duration_s)}*\n\n"]
+    lines = [f"## {title}\n\n*{run.name} — {_fmt_duration(run.duration_s)}*\n\n"]
 
     for schema_type, data in run.schemas:
         if schema_type == "ProblemSpec":
