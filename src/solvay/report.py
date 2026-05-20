@@ -104,7 +104,7 @@ def _render_problem_spec(data: dict) -> str:
 
     knowns_str = (
         ", ".join(
-            f"{k} = {v.get('value', '?')} {v.get('unit', '') if isinstance(v, dict) else ''}"
+            (f"{k} = {v.get('value', '?')} {v.get('unit', '')}".strip() if isinstance(v, dict) else f"{k} = {v}")
             for k, v in knowns.items()
         )
         or "—"
