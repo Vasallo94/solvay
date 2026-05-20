@@ -41,6 +41,66 @@ def _notebook_content(files: Mapping[str, object]) -> str:
     return ""
 
 
+def _stream_verbose(agent: object, problem: str) -> str:
+    """Run agent with streaming progress and return the final answer."""
+    import time
+
+    t0 = time.monotonic()
+    seen: list[str] = []
+    step_start = t0
+    final_content = ""
+
+    for event in agent.stream(  # type: ignore[union-attr]
+        {"messages": [{"role": "user", "content": problem}]},
+        stream_mode="debug",
+    ):
+        if not isinstance(event, dict):
+            continue
+        etype = event.get("type", "")
+        payload = event.get("payload", {})
+        elapsed = time.monotonic() - t0
+
+        if etype != "task_result" or not isinstance(payload, dict):
+            continue
+        result_data = payload.get("result", {})
+        if not isinstance(result_data, dict):
+            continue
+
+        msgs = result_data.get("messages", [])
+        if hasattr(msgs, "value"):
+            msgs = msgs.value
+        if not isinstance(msgs, list):
+            continue
+
+        for m in msgs:
+            for tc in getattr(m, "tool_calls", []):
+                if tc.get("name") == "task":
+                    st = tc.get("args", {}).get("subagent_type", "")
+                    if st and st not in seen:
+                        if seen:
+                            typer.echo(
+                                f"  \033[32m✓\033[0m {seen[-1]}"
+                                f"  ({time.monotonic() - step_start:.0f}s)"
+                            )
+                        seen.append(st)
+                        step_start = time.monotonic()
+                        typer.echo(f"  \033[36m⟳\033[0m {st}...")
+
+            if getattr(m, "type", "") == "ai" and not getattr(m, "tool_calls", []):
+                c = getattr(m, "content", "")
+                if isinstance(c, str) and len(c) > 20:
+                    final_content = c
+
+    if seen:
+        typer.echo(
+            f"  \033[32m✓\033[0m {seen[-1]}  ({time.monotonic() - step_start:.0f}s)"
+        )
+
+    total = time.monotonic() - t0
+    typer.echo(f"\n\033[2mCompleted in {total / 60:.1f} min\033[0m\n")
+    return final_content
+
+
 @app.command()
 def solve(
     statement: str | None = typer.Argument(None, help="The physics problem statement."),
@@ -56,6 +116,9 @@ def solve(
             "'google_genai:gemini-2.5-pro', or 'ollama:qwen3.5'. "
             "Takes precedence over the SOLVAY_MODEL env var."
         ),
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show subagent progress as the pipeline runs."
     ),
     trace: Path | None = typer.Option(
         None, "--trace", help="Dump full trace as JSON to this file."
@@ -87,15 +150,21 @@ def solve(
 
     agent = create_solvay_agent(config)
 
-    result = agent.invoke({"messages": [{"role": "user", "content": problem}]})
+    if verbose:
+        final_message = _stream_verbose(agent, problem)
+    else:
+        result = agent.invoke({"messages": [{"role": "user", "content": problem}]})
+        final_message = result["messages"][-1].content
 
-    final_message = result["messages"][-1].content
     typer.echo("=" * 60)
     typer.echo(final_message)
     typer.echo("=" * 60)
 
     if trace is not None:
-        trace.write_text(json.dumps(result, default=str, indent=2), encoding="utf-8")
+        if not verbose:
+            trace.write_text(json.dumps(result, default=str, indent=2), encoding="utf-8")
+        else:
+            trace.write_text(json.dumps({"answer": final_message}, indent=2), encoding="utf-8")
         typer.echo(f"\nTrace saved to {trace}")
 
 
