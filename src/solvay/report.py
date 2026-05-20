@@ -1,0 +1,217 @@
+"""Generate a Quarkdown (.qd) document from a completed RunCollector."""
+
+from __future__ import annotations
+
+import datetime
+
+from solvay.streaming import RunCollector, SubagentRun
+
+_SECTION_TITLES: dict[str, str] = {
+    "parser": "Problem Parsing",
+    "researcher": "Research",
+    "solver": "Solution",
+    "verifier": "Verification",
+    "peer_reviewer": "Peer Review",
+}
+
+
+def generate_quarkdown(collector: RunCollector) -> str:
+    """Render the full Quarkdown report from accumulated pipeline state."""
+    parts: list[str] = []
+
+    domain = _domain_from_collector(collector)
+    date_str = datetime.date.today().isoformat()
+    duration_str = _fmt_duration(collector.total_s)
+    title = _title_from_problem(collector.problem)
+
+    parts.append(
+        f""".docname {{Solvay Solution Report}}
+.doctype {{plain}}
+.doclang {{English}}
+.theme {{paperwhite}} layout:{{latex}}
+.numbering
+    - headings: 1
+
+# {title}
+
+**Domain:** {domain} | **Model:** {collector.model} | **Date:** {date_str} | **Duration:** {duration_str}
+
+---
+
+## Problem Statement
+
+{collector.problem}
+
+---
+
+"""
+    )
+
+    section_num = 1
+    for run in collector.subagent_runs:
+        if run.name == "consolidator":
+            continue
+        parts.append(_render_subagent_section(section_num, run))
+        section_num += 1
+
+    # Final answer — written by consolidator in Quarkdown format
+    parts.append(f"## {section_num} · Final Answer\n\n")
+    parts.append(collector.final_answer or "*No answer recorded.*")
+    parts.append("\n\n---\n\n")
+
+    # Run metadata
+    parts.append("## Run Metadata\n\n")
+    parts.append("| Subagent | Duration |\n|----------|----------|\n")
+    for run in collector.subagent_runs:
+        parts.append(f"| {run.name} | {_fmt_duration(run.duration_s)} |\n")
+    parts.append(f"| **Total** | **{_fmt_duration(collector.total_s)}** |\n")
+
+    return "".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Section renderers
+# ---------------------------------------------------------------------------
+
+
+def _render_subagent_section(num: int, run: SubagentRun) -> str:
+    title = _SECTION_TITLES.get(run.name, run.name.replace("_", " ").title())
+    lines = [f"## {num} · {title}\n\n*{run.name} — {_fmt_duration(run.duration_s)}*\n\n"]
+
+    for schema_type, data in run.schemas:
+        if schema_type == "ProblemSpec":
+            lines.append(_render_problem_spec(data))
+        elif schema_type == "ResearchBrief":
+            lines.append(_render_research_brief(data))
+        elif schema_type == "SolutionDraft":
+            lines.append(_render_solution_draft(data))
+        elif schema_type == "Verdict":
+            lines.append(_render_verdict(data))
+
+    if run.tool_calls:
+        tool_list = ", ".join(f"`{tc.tool}`" for tc in run.tool_calls)
+        lines.append(f"**Tool calls:** {tool_list}\n\n")
+
+    lines.append("---\n\n")
+    return "".join(lines)
+
+
+def _render_problem_spec(data: dict) -> str:
+    domain = data.get("domain", "unknown")
+    knowns = data.get("knowns", {})
+    unknowns = data.get("unknowns", [])
+    assumptions = data.get("assumptions", [])
+
+    knowns_str = (
+        ", ".join(
+            f"{k} = {v.get('value', '?')} {v.get('unit', '') if isinstance(v, dict) else ''}"
+            for k, v in knowns.items()
+        )
+        or "—"
+    )
+    unknowns_str = ", ".join(str(u) for u in unknowns) or "—"
+
+    lines = [
+        f"| Field | Value |\n|-------|-------|\n",
+        f"| Domain | {domain} |\n",
+        f"| Knowns | {knowns_str} |\n",
+        f"| Unknowns | {unknowns_str} |\n\n",
+    ]
+
+    if assumptions:
+        lines.append(".box {Assumptions} type:{tip}\n")
+        for a in assumptions:
+            lines.append(f"    - {a}\n")
+        lines.append("\n")
+
+    return "".join(lines)
+
+
+def _render_research_brief(data: dict) -> str:
+    principles = data.get("principles", [])
+    equations = data.get("candidate_equations", [])
+    citations = data.get("citations", [])
+    lines: list[str] = []
+
+    if principles:
+        lines.append("**Principles:**\n")
+        for p in principles:
+            lines.append(f"- {p}\n")
+        lines.append("\n")
+
+    if equations:
+        lines.append("**Candidate equations:**\n")
+        for eq in equations:
+            if not eq.strip().startswith("$"):
+                eq = f"$ {eq} $"
+            lines.append(f"- {eq}\n")
+        lines.append("\n")
+
+    if citations:
+        lines.append(f"**Sources:** {', '.join(citations)}\n\n")
+
+    return "".join(lines)
+
+
+def _render_solution_draft(data: dict) -> str:
+    method = data.get("method", "")
+    steps = data.get("steps", [])
+    final_answer = data.get("final_answer", "")
+    code_trace = data.get("code_trace", [])
+    lines: list[str] = []
+
+    if method:
+        lines.append(f"**Method:** {method}\n\n")
+    if steps:
+        lines.append("**Steps:**\n")
+        for i, step in enumerate(steps, 1):
+            lines.append(f"{i}. {step}\n")
+        lines.append("\n")
+    if final_answer:
+        fa = final_answer
+        if isinstance(fa, dict):
+            fa = f"{fa.get('value', '?')} {fa.get('unit', '')}".strip()
+        lines.append(f"**Final answer:** {fa}\n\n")
+    if code_trace:
+        lines.append("**Code trace:**\n```python\n")
+        for line in code_trace:
+            lines.append(f"{line}\n")
+        lines.append("```\n\n")
+
+    return "".join(lines)
+
+
+def _render_verdict(data: dict) -> str:
+    approved = data.get("approved", False)
+    issues = data.get("issues", [])
+    severity = data.get("severity", "none")
+    status = "approved ✓" if approved else f"rejected — severity: {severity}"
+    lines = [f".box {{Verification}} type:{{tip}}\n    {status}\n"]
+    for issue in issues:
+        lines.append(f"    - {issue}\n")
+    lines.append("\n")
+    return "".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
+
+
+def _fmt_duration(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    return f"{seconds / 60:.1f} min"
+
+
+def _title_from_problem(problem: str) -> str:
+    first = problem.split(".")[0].split("?")[0].strip()
+    return first[:120]
+
+
+def _domain_from_collector(collector: RunCollector) -> str:
+    for run in collector.subagent_runs:
+        for schema_type, data in run.schemas:
+            if schema_type == "ProblemSpec":
+                return str(data.get("domain", "unknown"))
+    return "unknown"
