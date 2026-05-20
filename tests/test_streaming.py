@@ -148,6 +148,9 @@ class TestParseStream:
         tool_calls = [e for e in events if isinstance(e, ToolCallMade)]
         assert len(tool_calls) == 1
         assert tool_calls[0].tool == "python_exec"
+        results = [e for e in events if isinstance(e, ToolResultReceived)]
+        assert len(results) == 1
+        assert results[0].tool == "python_exec"
 
     def test_schema_produced_when_output_matches_known_schema(self) -> None:
         output = '{"principles": ["F=ma"], "candidate_equations": ["F=ma"], "analogies": [], "citations": []}'
@@ -167,6 +170,7 @@ class TestParseStream:
         results = [e for e in events if isinstance(e, ToolResultReceived)]
         assert len(results) == 1
         assert results[0].result_preview.startswith("ERROR:")
+        assert "ZeroDivisionError" in results[0].result_preview
 
     def test_run_finished_emitted_last(self) -> None:
         stream = _FakeStream(subagents=[_FakeSubagent(name="parser")])
