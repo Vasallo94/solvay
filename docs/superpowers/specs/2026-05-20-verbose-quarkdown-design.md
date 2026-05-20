@@ -38,10 +38,11 @@ The Quarkdown report serves as a deliverable: a self-contained paper documenting
 ### Data flow
 
 ```
-agent.stream(stream_mode="updates", subgraphs=True, version="v2")
-        │
+agent.stream_events({"messages": [...]}, version="v3")
+        │  (deepagents high-level streaming API)
         ▼
 parse_stream(agent, problem) → Iterator[StreamEvent]
+        │  iterates stream.subagents → tool_calls → output_deltas live
         │
     for event in parse_stream(...):
         ├── print_event(event)        # Feature 1: live terminal output
@@ -55,11 +56,24 @@ generate_quarkdown(collector, config) → str → <output>.qd   # Feature 2: alw
 
 ## Feature 1: Verbose Live Output
 
-### Stream mode change
+### Stream API
 
-`_stream_verbose` currently uses `stream_mode="debug"`, which delivers `task_result` events post-hoc (after each subagent completes). The reimplementation switches to `stream_mode="updates"` with `subgraphs=True` and `version="v2"`, the same mode used by the `chat` command, which delivers per-node updates including from subgraph namespaces as they happen.
+`_stream_verbose` currently uses `stream_mode="debug"`, which delivers `task_result` events post-hoc. The reimplementation uses the deepagents `stream_events` v3 API, which exposes a high-level structured interface over the subgraph stream:
 
-The `ns` (namespace) field on each chunk identifies whether the event originates from the orchestrator or from inside a running subagent. Orchestrator-level events (empty `ns`) are used to detect subagent dispatches (tool calls named `"task"`). Subagent-internal events (non-empty `ns`) expose tool calls and results from within that subagent.
+```python
+stream = agent.stream_events({"messages": [...]}, version="v3")
+
+for subagent in stream.subagents:          # yields as each subagent starts
+    subagent.name                          # "parser", "researcher", etc.
+    for tool_call in subagent.tool_calls:  # yields as each tool fires
+        tool_call.tool_name
+        for delta in tool_call.output_deltas:  # live streaming deltas
+            ...
+        tool_call.output   # full result when complete
+        tool_call.error    # set if the tool raised
+```
+
+This eliminates the need to parse raw LangGraph namespace tuples (`("tools:<call_id>",)`) and correlate them with subagent names — the v3 API resolves names directly. `subagent.name` maps 1:1 to the deepagents subagent `name` field (e.g., `"parser"`, `"researcher"`).
 
 ### Terminal output format
 
@@ -111,16 +125,16 @@ Report saved → report.qd
 
 ### Always generated
 
-The `.qd` report is generated after every `solve` run (not behind a feature flag). Default output path: `report.qd` in the current working directory. Configurable via `--output <path>` on the `solve` command. A `--output` value without a `.qd` extension is accepted as-is (allows `.md` or other formats in future).
+The `.qd` report is generated after every `solve` run (not behind a feature flag). One report per run — default filename is timestamped: `solvay-report-YYYYMMDD-HHMMSS.qd` in the current working directory. Configurable via `--output <path>` on the `solve` command. A `--output` value without a `.qd` extension is accepted as-is.
 
 ### `--output` flag
 
 ```
 uv run solvay solve -v "problem" --output my-report.qd
-uv run solvay solve "problem"            # always writes report.qd
+uv run solvay solve "problem"   # writes solvay-report-20260520-143201.qd
 ```
 
-The Makefile `RUN` variable does not need updating; `report.qd` is acceptable as a default.
+The Makefile `RUN` variable does not need updating; the timestamped default is sufficient.
 
 ### Document structure
 
@@ -307,25 +321,27 @@ class RunCollector:
 def solve(
     ...,
     verbose: bool = ...,
-    output: Path = typer.Option(Path("report.qd"), "--output", "-o", ...),
+    output: Path | None = typer.Option(None, "--output", "-o", ...),
     trace: Path | None = ...,
 ) -> None:
 ```
 
-`_stream_verbose` is replaced by a thin loop:
+If `--output` is omitted, the path defaults to `solvay-report-<timestamp>.qd` computed at runtime. `_stream_verbose` is replaced by a thin loop:
 
 ```python
 collector = RunCollector(problem=problem, model=config.model_for("orchestrator"), ...)
 for event in parse_stream(agent, problem):
-    print_event(event)
+    if verbose:
+        print_event(event)
     collector.accumulate(event)
 
 qd = generate_quarkdown(collector, config)
-output.write_text(qd, encoding="utf-8")
-typer.echo(f"Report saved → {output}")
+out_path = output or Path(f"solvay-report-{timestamp()}.qd")
+out_path.write_text(qd, encoding="utf-8")
+typer.echo(f"Report saved → {out_path}")
 ```
 
-When `verbose=False`, `agent.invoke()` is still used (no streaming), and `generate_quarkdown` receives a minimal collector with only the final answer — producing a report with just the problem statement and final answer sections.
+When `verbose=False`, `parse_stream()` is still used to drive the report collection, but `print_event` is skipped — only subagent start/finish lines are printed (current behavior). `generate_quarkdown` with a non-verbose collector produces a minimal report: problem statement + final answer sections only, no tool call tables or intermediate schema sections.
 
 ---
 
@@ -347,6 +363,5 @@ When `verbose=False`, `agent.invoke()` is still used (no streaming), and `genera
 
 ## Open Questions
 
-- **Namespace format**: The exact structure of `ns` in deepagents' LangGraph event stream is not documented. Implementation will need a short exploratory spike to verify how subagent namespaces are represented before committing to the parsing logic.
-- **Schema detection heuristic**: Matching JSON content to Pydantic schemas by field names may produce false positives. A conservative approach (require all required fields to be present) should be used.
-- **`verbose=False` report**: The report generated without `-v` will be sparse (no tool calls, no intermediate schemas). This is acceptable for now; a future improvement could run a lightweight structured extraction pass.
+- **Schema detection heuristic**: Matching `tool_call.output` JSON to Pydantic schemas by field names may produce false positives. A conservative approach (require all required fields to be present) should be used. Known schema field sets: `ProblemSpec` (`statement, domain, knowns, unknowns, assumptions, approach_hints`), `ResearchBrief` (`principles, candidate_equations, analogies, citations`), `SolutionDraft` (`method, steps, final_answer, code_trace`), `Verdict` (`approved, issues, severity`).
+- **`stream_events` v3 availability**: Verify that the installed version of deepagents supports `agent.stream_events(version="v3")` before implementing. Fallback: use `stream_mode="messages"` + `subgraphs=True` + `version="v2"` and parse `chunk["ns"]` tuples of the form `("tools:<call_id>",)`, correlating call IDs with subagent names from orchestrator tool calls.
