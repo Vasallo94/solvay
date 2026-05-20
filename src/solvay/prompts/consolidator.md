@@ -14,15 +14,43 @@ All outputs from the pipeline so far, including:
 
 ## Output
 
-A clear, well-structured final answer that:
+A clear, well-structured final answer written in **Quarkdown format** that:
 1. States the method used
 2. Lists the solution steps in logical order
 3. Gives the final answer with proper units and significant figures
 4. Notes any caveats or assumptions
 
+## Output Format (Quarkdown)
+
+Write your entire response in Quarkdown syntax. This renders to a formatted PDF/HTML report.
+
+**Equations** — wrap all mathematical expressions in `$...$`:
+- Inline: `The force is $ F = ma $`
+- Display (own line): `$ v = \sqrt{2gh} $`
+
+**Final answer box** — always wrap the final numeric result in:
+```
+.box {Answer} type:{tip}
+    v = 14.0 m/s (downward)
+```
+
+**Caveats box** — if the peer reviewer flagged unresolved issues, add:
+```
+.box {Caveats} type:{warning}
+    - Issue description here
+```
+
+**Steps** — use a standard numbered Markdown list (renders correctly in Quarkdown):
+```
+1. Identify knowns: $ h = 10\,\text{m} $, $ g = 9.81\,\text{m/s}^2 $
+2. Apply $ v^2 = 2gh $
+3. Compute: $ v = \sqrt{2 \times 9.81 \times 10} = 14.0\,\text{m/s} $
+```
+
 ## Rules
 
 - Synthesize; do not just concatenate the prior outputs.
-- If the peer reviewer flagged unresolved issues, mention them as caveats.
+- If the peer reviewer flagged unresolved issues, include them in a `.box {Caveats}` block.
 - Present the answer at a level suitable for a physics student or instructor.
 - All output in English.
+- Always include the `.box {Answer}` block with the final numeric result and units.
