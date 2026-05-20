@@ -44,6 +44,15 @@ class PythonExecConfig:
 
 
 
+@dataclass(frozen=True)
+class HarnessConfig:
+    """Configuration for native DeepAgents harness features."""
+
+    native_memory_enabled: bool = True
+    memory_namespace: str = "solvay"
+    persist_harness_notes: bool = True
+
+
 @dataclass
 class SolvayConfig:
     """Top-level configuration for a Solvay run.
@@ -60,6 +69,7 @@ class SolvayConfig:
     default_model: str | None = None
     solver_loop: SolverLoopConfig = field(default_factory=SolverLoopConfig)
     python_exec: PythonExecConfig = field(default_factory=PythonExecConfig)
+    harness: HarnessConfig = field(default_factory=HarnessConfig)
 
     def model_for(self, role: Role) -> str:
         """Return the model string for a given role, walking the precedence ladder."""

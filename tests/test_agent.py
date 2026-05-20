@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
+from deepagents.backends import CompositeBackend
+
+from solvay.harness import HARNESS_NOTES_PATH, LONG_TERM_MEMORY_PATH
 
 
 class TestWebSearchTool:
@@ -22,3 +27,16 @@ class TestWebSearchTool:
         # The stub must signal unavailability so subagents don't misinterpret
         # empty results as "no information found on the web".
         assert "unavailable" in str(result.get("error", "")).lower()
+
+
+def test_create_agent_wires_native_memory_backend_and_permissions() -> None:
+    from solvay.agent import create_solvay_agent
+
+    with patch("solvay.agent.create_deep_agent") as fake_create:
+        fake_create.return_value = object()
+        create_solvay_agent()
+
+    kwargs = fake_create.call_args.kwargs
+    assert kwargs["memory"] == [LONG_TERM_MEMORY_PATH, HARNESS_NOTES_PATH]
+    assert isinstance(kwargs["backend"], CompositeBackend)
+    assert kwargs["permissions"]

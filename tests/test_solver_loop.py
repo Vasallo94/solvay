@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
+from langchain_core.messages import AIMessage
+from langchain_core.runnables import Runnable, RunnableLambda
 
 from solvay.schemas import (
     ProblemSpec,
@@ -81,6 +83,56 @@ class TestSolverLoopConsensus:
         assert result["termination_reason"] == "consensus"
         assert result["final_draft"] is not None
         assert result["iteration"] == 1
+
+    def test_final_message_contains_compiled_subagent_payload(self) -> None:
+        solver_model = FakeListChatModel(responses=[_draft_json()])
+        verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
+        reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
+
+        graph = build_solver_loop_graph(
+            solver_model=solver_model,
+            verifier_model=verifier_model,
+            reviewer_model=reviewer_model,
+        )
+
+        result = graph.invoke(_make_inputs())
+        payload = json.loads(result["messages"][-1].content)
+        assert payload["termination_reason"] == "consensus"
+        assert payload["iterations_consumed"] == 1
+        assert payload["final_draft"]["method"] == "Newtonian mechanics"
+
+    def test_agent_runnables_can_return_structured_responses(self) -> None:
+        draft = SolutionDraft.model_validate(json.loads(_draft_json()))
+        approved = Verdict.model_validate(json.loads(_verdict_json(True)))
+
+        solver_agent: Runnable[object, object] = RunnableLambda(
+            lambda _state: {
+                "messages": [AIMessage(content="solver done")],
+                "structured_response": draft,
+            }
+        )
+        verifier_agent: Runnable[object, object] = RunnableLambda(
+            lambda _state: {
+                "messages": [AIMessage(content="verifier done")],
+                "structured_response": approved,
+            }
+        )
+        reviewer_agent: Runnable[object, object] = RunnableLambda(
+            lambda _state: {
+                "messages": [AIMessage(content="reviewer done")],
+                "structured_response": approved,
+            }
+        )
+
+        graph = build_solver_loop_graph(
+            solver_model=solver_agent,
+            verifier_model=verifier_agent,
+            reviewer_model=reviewer_agent,
+        )
+
+        result = graph.invoke(_make_inputs())
+        assert result["termination_reason"] == "consensus"
+        assert result["final_draft"]["method"] == "Newtonian mechanics"
 
 
 class TestSolverLoopBudgetExhausted:

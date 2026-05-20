@@ -9,6 +9,7 @@ from deepagents import SubAgent, create_deep_agent
 from tavily import TavilyClient
 
 from solvay.config import SolvayConfig
+from solvay.harness import build_backend, build_permissions, memory_paths
 from solvay.subagents import load_prompt
 from solvay.subagents.consolidator import create_consolidator_subagent
 from solvay.subagents.parser import create_parser_subagent
@@ -83,7 +84,7 @@ def create_solvay_agent(
 
     parser = create_parser_subagent(config)
     researcher = create_researcher_subagent(config, web_search, url_fetch)
-    solver = create_solver_subagent(config)
+    solver = create_solver_subagent(config, web_search, url_fetch)
     verifier = create_verifier_subagent(config)
     peer_reviewer = create_peer_reviewer_subagent(config, web_search)
     consolidator = create_consolidator_subagent(config)
@@ -92,6 +93,9 @@ def create_solvay_agent(
         model=config.model_for("orchestrator"),
         tools=[web_search],
         system_prompt=load_prompt("orchestrator"),
+        memory=memory_paths(config.harness),
+        backend=build_backend(),
+        permissions=build_permissions(),
         subagents=[
             cast(SubAgent, parser),
             cast(SubAgent, researcher),

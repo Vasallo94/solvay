@@ -1,0 +1,37 @@
+{
+  "id": "sample-mech-0001",
+  "version": 1,
+  "source": {
+    "kind": "textbook",
+    "origin": "tipler-6th-ed-4.1",
+    "generated_at": "2026-04-18T00:00:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "newtonian-dynamics",
+  "tags": ["incline", "newton", "1d"],
+  "difficulty": "easy",
+  "statement": "A block of mass 2 kg slides down a frictionless incline of angle 30 degrees. Find the acceleration of the block.",
+  "given": {
+    "m": "2 kg",
+    "theta": "30 deg"
+  },
+  "find": "Acceleration of the block along the incline.",
+  "expected": {
+    "kind": "numeric",
+    "value": "4.905",
+    "unit": "m/s^2",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": {
+    "checked_at": "2026-04-18T00:00:00Z",
+    "method": "manual-seed",
+    "score": 1.0,
+    "verdict": "contaminated"
+  },
+  "notes": "Canonical Tipler problem; marked contaminated on purpose to exercise the pipeline."
+}
