@@ -105,3 +105,111 @@ def test_bench_help_mentions_ollama_model_strings() -> None:
     result = CliRunner().invoke(app, ["bench", "--help"])
     assert result.exit_code == 0
     assert "ollama:" in result.stdout
+
+
+import datetime
+from pathlib import Path
+from unittest.mock import MagicMock
+
+import pytest
+from typer.testing import CliRunner
+
+from solvay.cli import app
+from solvay.streaming import RunFinished, SubagentFinished, SubagentStarted
+
+
+def _mock_events():
+    return iter([
+        SubagentStarted(name="parser", t=0.0),
+        SubagentFinished(name="parser", duration_s=5.0),
+        SubagentStarted(name="consolidator", t=5.0),
+        SubagentFinished(name="consolidator", duration_s=3.0),
+        RunFinished(total_s=8.0, final_answer="v = 14.0 m/s"),
+    ])
+
+
+class TestSolveReportGeneration:
+    def test_report_always_written_default_path(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("solvay.cli.create_solvay_agent", lambda *a, **kw: MagicMock())
+        monkeypatch.setattr("solvay.cli.parse_stream", lambda *a, **kw: _mock_events())
+        monkeypatch.setattr("solvay.cli.generate_quarkdown", lambda *a, **kw: ".docname {Test}\n")
+
+        result = CliRunner().invoke(app, ["solve", "test problem"])
+
+        assert result.exit_code == 0, result.output
+        qd_files = list(tmp_path.glob("solvay-report-*.qd"))
+        assert len(qd_files) == 1
+        assert ".docname" in qd_files[0].read_text()
+
+    def test_report_written_to_custom_output_path(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("solvay.cli.create_solvay_agent", lambda *a, **kw: MagicMock())
+        monkeypatch.setattr("solvay.cli.parse_stream", lambda *a, **kw: _mock_events())
+        monkeypatch.setattr("solvay.cli.generate_quarkdown", lambda *a, **kw: ".docname {Test}\n")
+
+        out = tmp_path / "my-report.qd"
+        result = CliRunner().invoke(app, ["solve", "test problem", "--output", str(out)])
+
+        assert result.exit_code == 0, result.output
+        assert out.exists()
+
+    def test_verbose_flag_shows_tool_call_lines(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from solvay.streaming import ToolCallMade, ToolResultReceived
+
+        events = iter([
+            SubagentStarted(name="parser", t=0.0),
+            ToolCallMade(subagent="parser", tool="python_exec", args_preview="h=10"),
+            ToolResultReceived(subagent="parser", tool="python_exec", result_preview="h=10.0"),
+            SubagentFinished(name="parser", duration_s=5.0),
+            RunFinished(total_s=5.0, final_answer="v = 14 m/s"),
+        ])
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("solvay.cli.create_solvay_agent", lambda *a, **kw: MagicMock())
+        monkeypatch.setattr("solvay.cli.parse_stream", lambda *a, **kw: events)
+        monkeypatch.setattr("solvay.cli.generate_quarkdown", lambda *a, **kw: "")
+
+        result = CliRunner().invoke(app, ["solve", "-v", "test problem"])
+
+        assert "python_exec" in result.output
+        assert "h=10" in result.output
+
+    def test_non_verbose_hides_tool_calls(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from solvay.streaming import ToolCallMade
+
+        events = iter([
+            SubagentStarted(name="parser", t=0.0),
+            ToolCallMade(subagent="parser", tool="python_exec", args_preview="secret_arg"),
+            SubagentFinished(name="parser", duration_s=5.0),
+            RunFinished(total_s=5.0, final_answer="v = 14 m/s"),
+        ])
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("solvay.cli.create_solvay_agent", lambda *a, **kw: MagicMock())
+        monkeypatch.setattr("solvay.cli.parse_stream", lambda *a, **kw: events)
+        monkeypatch.setattr("solvay.cli.generate_quarkdown", lambda *a, **kw: "")
+
+        result = CliRunner().invoke(app, ["solve", "test problem"])
+
+        assert "secret_arg" not in result.output
+
+    def test_report_saved_line_in_output(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("solvay.cli.create_solvay_agent", lambda *a, **kw: MagicMock())
+        monkeypatch.setattr("solvay.cli.parse_stream", lambda *a, **kw: _mock_events())
+        monkeypatch.setattr("solvay.cli.generate_quarkdown", lambda *a, **kw: "")
+
+        result = CliRunner().invoke(app, ["solve", "test problem"])
+
+        assert "Report saved" in result.output

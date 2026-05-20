@@ -4,24 +4,23 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from datetime import datetime
 from pathlib import Path
 
 import typer
 from dotenv import load_dotenv
 
-# Load variables from a project-root ``.env`` file (ANTHROPIC_API_KEY,
-# TAVILY_API_KEY, LANGSMITH_*, SOLVAY_MODEL, ...) before any langchain /
-# langgraph / langsmith imports fire, so those libraries pick the values up
-# on first import. ``override=False`` (the default) means real shell exports
-# still win over ``.env`` -- handy for one-off CLI overrides.
 load_dotenv()
 
-# Disable LangSmith tracing when no API key is configured to avoid noisy
-# 403 errors on every model call.
 import os as _os
 if not _os.environ.get("LANGSMITH_API_KEY"):
     _os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
     _os.environ.setdefault("LANGSMITH_TRACING", "false")
+
+# Module-level imports needed for monkeypatching in tests.
+from solvay.agent import create_solvay_agent  # noqa: E402
+from solvay.report import generate_quarkdown  # noqa: E402
+from solvay.streaming import RunCollector, parse_stream  # noqa: E402
 
 app = typer.Typer(
     name="solvay",
@@ -41,64 +40,52 @@ def _notebook_content(files: Mapping[str, object]) -> str:
     return ""
 
 
-def _stream_verbose(agent: object, problem: str) -> str:
-    """Run agent with streaming progress and return the final answer."""
-    import time
-
-    t0 = time.monotonic()
-    seen: list[str] = []
-    step_start = t0
-    final_content = ""
-
-    for event in agent.stream(  # type: ignore[union-attr]
-        {"messages": [{"role": "user", "content": problem}]},
-        stream_mode="debug",
-    ):
-        if not isinstance(event, dict):
-            continue
-        etype = event.get("type", "")
-        payload = event.get("payload", {})
-        elapsed = time.monotonic() - t0
-
-        if etype != "task_result" or not isinstance(payload, dict):
-            continue
-        result_data = payload.get("result", {})
-        if not isinstance(result_data, dict):
-            continue
-
-        msgs = result_data.get("messages", [])
-        if hasattr(msgs, "value"):
-            msgs = msgs.value
-        if not isinstance(msgs, list):
-            continue
-
-        for m in msgs:
-            for tc in getattr(m, "tool_calls", []):
-                if tc.get("name") == "task":
-                    st = tc.get("args", {}).get("subagent_type", "")
-                    if st and st not in seen:
-                        if seen:
-                            typer.echo(
-                                f"  \033[32m✓\033[0m {seen[-1]}"
-                                f"  ({time.monotonic() - step_start:.0f}s)"
-                            )
-                        seen.append(st)
-                        step_start = time.monotonic()
-                        typer.echo(f"  \033[36m⟳\033[0m {st}...")
-
-            if getattr(m, "type", "") == "ai" and not getattr(m, "tool_calls", []):
-                c = getattr(m, "content", "")
-                if isinstance(c, str) and len(c) > 20:
-                    final_content = c
-
-    if seen:
-        typer.echo(
-            f"  \033[32m✓\033[0m {seen[-1]}  ({time.monotonic() - step_start:.0f}s)"
+def _schema_summary(schema_type: str, data: dict) -> str:
+    if schema_type == "ProblemSpec":
+        domain = data.get("domain", "?")
+        unknowns = data.get("unknowns", [])
+        knowns = list(data.get("knowns", {}).keys())
+        return f"domain={domain}, unknowns={unknowns}, knowns={{{', '.join(knowns)}}}"
+    if schema_type == "ResearchBrief":
+        return (
+            f"{len(data.get('principles', []))} principles, "
+            f"{len(data.get('candidate_equations', []))} equations, "
+            f"{len(data.get('citations', []))} citations"
         )
+    if schema_type == "SolutionDraft":
+        fa = data.get("final_answer", "?")
+        if isinstance(fa, dict):
+            fa = f"{fa.get('value', '?')} {fa.get('unit', '')}".strip()
+        return f"method={data.get('method', '?')}, steps={len(data.get('steps', []))}, answer={fa}"
+    if schema_type == "Verdict":
+        return f"approved={data.get('approved', False)}, severity={data.get('severity', 'none')}"
+    return str(data)[:80]
 
-    total = time.monotonic() - t0
-    typer.echo(f"\n\033[2mCompleted in {total / 60:.1f} min\033[0m\n")
-    return final_content
+
+def _print_event(event: object, verbose: bool) -> None:
+    from solvay.streaming import (
+        RunFinished,
+        SchemaProduced,
+        SubagentFinished,
+        SubagentStarted,
+        ToolCallMade,
+        ToolResultReceived,
+    )
+
+    if isinstance(event, SubagentStarted):
+        typer.echo(f"  \033[36m⟳\033[0m {event.name}...")
+    elif isinstance(event, SubagentFinished):
+        typer.echo(f"  \033[32m✓\033[0m {event.name}  ({event.duration_s:.0f}s)")
+    elif isinstance(event, RunFinished):
+        typer.echo(f"\n\033[2mCompleted in {event.total_s / 60:.1f} min\033[0m\n")
+    elif verbose:
+        if isinstance(event, ToolCallMade):
+            typer.echo(f"    \033[90m→\033[0m {event.tool}: {event.args_preview}")
+        elif isinstance(event, ToolResultReceived):
+            typer.echo(f"    \033[90m↳\033[0m {event.result_preview}")
+        elif isinstance(event, SchemaProduced):
+            summary = _schema_summary(event.schema_type, event.data)
+            typer.echo(f"    \033[90m→ [{event.schema_type}]\033[0m {summary}")
 
 
 @app.command()
@@ -118,7 +105,12 @@ def solve(
         ),
     ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Show subagent progress as the pipeline runs."
+        False, "--verbose", "-v", help="Show subagent tool calls and intermediate outputs."
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        help="Write Quarkdown report to this path (default: solvay-report-<timestamp>.qd).",
     ),
     trace: Path | None = typer.Option(
         None, "--trace", help="Dump full trace as JSON to this file."
@@ -142,31 +134,32 @@ def solve(
 
     typer.echo(f"Solving: {problem[:80]}{'...' if len(problem) > 80 else ''}\n")
 
-    from solvay.agent import create_solvay_agent
     from solvay.config import SolvayConfig
 
     config = SolvayConfig(default_model=model)
     typer.echo(f"Model: {config.model_for('orchestrator')}\n")
 
     agent = create_solvay_agent(config)
+    collector = RunCollector(problem=problem, model=config.model_for("orchestrator"))
 
-    if verbose:
-        final_message = _stream_verbose(agent, problem)
-    else:
-        result = agent.invoke({"messages": [{"role": "user", "content": problem}]})
-        final_message = result["messages"][-1].content
+    for event in parse_stream(agent, problem):
+        _print_event(event, verbose=verbose)
+        collector.accumulate(event)
+
+    final_message = collector.final_answer
 
     typer.echo("=" * 60)
     typer.echo(final_message)
     typer.echo("=" * 60)
 
-    if trace is not None:
-        if not verbose:
-            trace.write_text(json.dumps(result, default=str, indent=2), encoding="utf-8")
-        else:
-            trace.write_text(json.dumps({"answer": final_message}, indent=2), encoding="utf-8")
-        typer.echo(f"\nTrace saved to {trace}")
+    qd = generate_quarkdown(collector)
+    out_path = output or Path(f"solvay-report-{datetime.now().strftime('%Y%m%d-%H%M%S')}.qd")
+    out_path.write_text(qd, encoding="utf-8")
+    typer.echo(f"\nReport saved → {out_path}")
 
+    if trace is not None:
+        trace.write_text(json.dumps({"answer": final_message}, indent=2), encoding="utf-8")
+        typer.echo(f"Trace saved to {trace}")
 
 
 @app.command()
