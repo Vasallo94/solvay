@@ -5,10 +5,13 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
+import pytest
 from typer.testing import CliRunner
 
 from solvay.cli import app
+from solvay.streaming import RunFinished, SubagentFinished, SubagentStarted
 
 
 class TestDotenvAutoLoad:
@@ -107,17 +110,6 @@ def test_bench_help_mentions_ollama_model_strings() -> None:
     assert "ollama:" in result.stdout
 
 
-import datetime
-from pathlib import Path
-from unittest.mock import MagicMock
-
-import pytest
-from typer.testing import CliRunner
-
-from solvay.cli import app
-from solvay.streaming import RunFinished, SubagentFinished, SubagentStarted
-
-
 def _mock_events():
     return iter([
         SubagentStarted(name="parser", t=0.0),
@@ -180,6 +172,7 @@ class TestSolveReportGeneration:
 
         assert "python_exec" in result.output
         assert "h=10" in result.output
+        assert "h=10.0" in result.output  # ToolResultReceived result_preview
 
     def test_non_verbose_hides_tool_calls(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
