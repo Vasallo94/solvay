@@ -94,6 +94,17 @@ class SolvayConfig:
         return model
 
 
+def resolve_model(model: "str | BaseChatModel") -> "BaseChatModel":
+    """Return a BaseChatModel, calling init_chat_model if given a string."""
+    from langchain_core.language_models import BaseChatModel as _BaseChatModel
+
+    if isinstance(model, _BaseChatModel):
+        return model
+    from langchain.chat_models import init_chat_model
+
+    return init_chat_model(model)
+
+
 def _build_vertex_model(model_string: str) -> "BaseChatModel":
     """Instantiate ChatAnthropicVertex from a ``vertexai:<model-name>`` string."""
     from langchain_google_vertexai.model_garden import ChatAnthropicVertex

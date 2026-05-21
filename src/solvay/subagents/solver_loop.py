@@ -260,24 +260,24 @@ def create_solver_subagent(
     Returns:
         A CompiledSubAgent with the solver loop graph as its runnable.
     """
-    from langchain.chat_models import init_chat_model
+    from solvay.config import resolve_model
 
     solver_model = create_agent(
-        init_chat_model(config.model_for("solver")),
+        resolve_model(config.model_for("solver")),
         system_prompt=load_prompt("solver"),
         tools=[python_exec, check_dimensions, web_search_tool, url_fetch_tool],
         response_format=SolverResponse,
         name="solver",
     )
     verifier_model = create_agent(
-        init_chat_model(config.model_for("verifier")),
+        resolve_model(config.model_for("verifier")),
         system_prompt=load_prompt("verifier"),
         tools=[python_exec, check_dimensions],
         response_format=Verdict,
         name="verifier",
     )
     reviewer_model = create_agent(
-        init_chat_model(config.model_for("peer_reviewer")),
+        resolve_model(config.model_for("peer_reviewer")),
         system_prompt=load_prompt("peer_reviewer"),
         tools=[python_exec, web_search_tool],
         response_format=Verdict,
