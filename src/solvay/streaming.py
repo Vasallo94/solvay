@@ -217,9 +217,16 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
 
         yield SubagentFinished(name=subagent.name, duration_s=time.monotonic() - t_start)
 
-    # Capture the coordinator's final message if consolidator didn't set it
+    # Capture the coordinator's final message if consolidator didn't set it.
+    # stream.messages yields LangChain AIMessage objects (.content), not the
+    # deepagents SubagentMessage wrappers (.text) used inside subagent loops.
     for msg in stream.messages:
-        text = getattr(msg, "text", "") or ""
+        text = getattr(msg, "content", "") or getattr(msg, "text", "") or ""
+        if isinstance(text, list):
+            # AIMessage.content can be a list of content blocks
+            text = " ".join(
+                b.get("text", "") if isinstance(b, dict) else str(b) for b in text
+            )
         if text and len(text) > 20 and not final_answer:
             final_answer = text
 
