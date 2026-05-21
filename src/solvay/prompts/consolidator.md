@@ -47,6 +47,14 @@ Write your entire response in Quarkdown syntax. This renders to a formatted PDF/
 3. Compute: $ v = \sqrt{2 \times 9.81 \times 10} = 14.0\,\text{m/s} $
 ```
 
+## How to return the answer
+
+**Write your complete Quarkdown response as your final message.** Do NOT write
+it only to a file and stop — your final message IS the output. You may use
+`write_file` as scratch space while drafting, but you MUST end by sending the
+full text as your response message. The system reads your last message, not
+any file.
+
 ## Rules
 
 - Synthesize; do not just concatenate the prior outputs.
