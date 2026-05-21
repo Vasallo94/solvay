@@ -25,6 +25,9 @@ venv/
 # Secrets
 .env
 .env.local
+credentials.json
+*-credentials.json
+*-service-account.json
 
 # Local Claude session state
 .claude/

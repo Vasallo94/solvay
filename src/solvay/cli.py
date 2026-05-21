@@ -137,10 +137,16 @@ def solve(
     from solvay.config import SolvayConfig
 
     config = SolvayConfig(default_model=model)
-    typer.echo(f"Model: {config.model_for('orchestrator')}\n")
+    resolved = config.model_for("orchestrator")
+    model_label = (
+        f"vertexai:{resolved.model_name}"  # type: ignore[union-attr]
+        if not isinstance(resolved, str)
+        else resolved
+    )
+    typer.echo(f"Model: {model_label}\n")
 
     agent = create_solvay_agent(config)
-    collector = RunCollector(problem=problem, model=config.model_for("orchestrator"))
+    collector = RunCollector(problem=problem, model=model_label)
 
     for event in parse_stream(agent, problem):
         _print_event(event, verbose=verbose)

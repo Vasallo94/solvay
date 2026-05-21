@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
 
 Role = Literal[
     "orchestrator",
@@ -71,13 +74,39 @@ class SolvayConfig:
     python_exec: PythonExecConfig = field(default_factory=PythonExecConfig)
     harness: HarnessConfig = field(default_factory=HarnessConfig)
 
-    def model_for(self, role: Role) -> str:
-        """Return the model string for a given role, walking the precedence ladder."""
+    def model_for(self, role: Role) -> "str | BaseChatModel":
+        """Return the model for a given role, walking the precedence ladder.
+
+        Returns a string for most providers (passed to init_chat_model by deepagents).
+        Returns a BaseChatModel instance for ``vertexai:`` models, because
+        ChatAnthropicVertex is not registered with init_chat_model.
+        """
         if role in self.models:
-            return self.models[role]
-        if self.default_model is not None:
-            return self.default_model
-        env_override = os.environ.get(ENV_MODEL_VAR)
-        if env_override:
-            return env_override
-        return DEFAULT_MODEL
+            model = self.models[role]
+        elif self.default_model is not None:
+            model = self.default_model
+        else:
+            env_override = os.environ.get(ENV_MODEL_VAR)
+            model = env_override if env_override else DEFAULT_MODEL
+
+        if isinstance(model, str) and model.startswith("vertexai:"):
+            return _build_vertex_model(model)
+        return model
+
+
+def _build_vertex_model(model_string: str) -> "BaseChatModel":
+    """Instantiate ChatAnthropicVertex from a ``vertexai:<model-name>`` string."""
+    from langchain_google_vertexai.model_garden import ChatAnthropicVertex
+
+    model_name = model_string.removeprefix("vertexai:")
+    project = os.environ.get("VERTEX_PROJECT", "")
+    location = os.environ.get("VERTEX_LOCATION", "eu")
+    if not project:
+        raise ValueError(
+            "VERTEX_PROJECT env var is required when using a vertexai: model."
+        )
+    return ChatAnthropicVertex(
+        model_name=model_name,
+        project=project,
+        location=location,
+    )

@@ -9,9 +9,10 @@
 #   make bench
 
 # ── Models ───────────────────────────────────────────────────
-QWEN := ollama:qwen3.6:35b-a3b-coding-mxfp8
-GEMMA := ollama:gemma4:31b
-M    ?= $(QWEN)
+QWEN   := ollama:qwen3.6:35b-a3b-coding-mxfp8
+GEMMA  := ollama:gemma4:31b
+VERTEX := vertexai:claude-sonnet-4-6
+M      ?= $(QWEN)
 
 # ── Commands ─────────────────────────────────────────────────
 RUN := uv run solvay solve -v
@@ -33,6 +34,10 @@ solve-qwen: ## Solve P="problem" with Qwen 3.6 35B
 solve-gemma: ## Solve P="problem" with Gemma4 31B
 	@test -n "$(P)" || (echo "Usage: make solve-gemma P=\"your problem\"" && exit 1)
 	$(RUN) -m "$(GEMMA)" "$(P)"
+
+solve-vertex: ## Solve P="problem" with Claude Sonnet via Vertex AI
+	@test -n "$(P)" || (echo "Usage: make solve-vertex P=\"your problem\"" && exit 1)
+	$(RUN) -m "$(VERTEX)" "$(P)"
 
 solve-file: ## Solve from F=path.txt with model M
 	@test -n "$(F)" || (echo "Usage: make solve-file F=problem.txt" && exit 1)
