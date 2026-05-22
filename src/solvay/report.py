@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import re
 
 from solvay.streaming import RunCollector, SubagentRun
 
@@ -54,7 +55,7 @@ def generate_quarkdown(collector: RunCollector) -> str:
 
     # Final answer — written by consolidator in Quarkdown format
     parts.append("## Final Answer\n\n")
-    parts.append(collector.final_answer or "*No answer recorded.*")
+    parts.append(_fix_quarkdown_math(collector.final_answer) if collector.final_answer else "*No answer recorded.*")
     parts.append("\n\n---\n\n")
 
     # Run metadata
@@ -184,7 +185,7 @@ def _render_verdict(data: dict) -> str:
     issues = data.get("issues", [])
     severity = data.get("severity", "none")
     status = "approved ✓" if approved else f"rejected — severity: {severity}"
-    lines = [f".box {{Verification}} type:{{tip}}\n    {status}\n"]
+    lines = [f".box type:{{tip}}\n    **Verification:** {status}\n"]
     for issue in issues:
         lines.append(f"    - {issue}\n")
     lines.append("\n")
@@ -194,6 +195,55 @@ def _render_verdict(data: dict) -> str:
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
+
+def _fix_quarkdown_math(text: str) -> str:
+    """Convert LaTeX math delimiters to valid Quarkdown syntax.
+
+    Quarkdown math delimiters:
+      - $ expr $  — single expression (inline or display), spaces required
+      - $$$       — multiline block fence (triple dollar, not double)
+
+    LLMs emit standard LaTeX: $expr$ (inline) and $$....$$ (display/block).
+    Processing order: longest match first to avoid partial replacements.
+    """
+    # 1. Multiline LaTeX blocks: $$ alone on a line, content lines, $$ alone.
+    #    → Quarkdown $$$ fenced block.
+    text = re.sub(
+        r'^\$\$\s*\n(.*?)\n\s*\$\$$',
+        lambda m: '$$$\n' + m.group(1) + '\n$$$',
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+
+    # 2. Single-line LaTeX display: $$ expr $$ → $ expr $
+    text = re.sub(
+        r'(?<!\$)\$\$\s*([^$\n]+?)\s*\$\$(?!\$)',
+        lambda m: '$ ' + m.group(1).strip() + ' $',
+        text,
+    )
+
+    # 3. Inline LaTeX: $expr$ (no surrounding spaces) → $ expr $
+    text = re.sub(
+        r'(?<!\$)\$([^$\n]+?)\$(?!\$)',
+        lambda m: '$ ' + m.group(1).strip() + ' $',
+        text,
+    )
+
+    # 4. .box {Title} type:{X} → .box type:{X} \n    **Title**
+    #    The LLM writes positional title arg which Quarkdown rejects (body is required).
+    def _fix_box(m: re.Match) -> str:
+        title = m.group(1).strip()
+        box_type = m.group(2).strip()
+        return f'.box type:{{{box_type}}}\n    **{title}**'
+
+    text = re.sub(
+        r'\.box\s+\{([^}]+)\}\s+type:\{([^}]+)\}',
+        _fix_box,
+        text,
+    )
+
+    return text
 
 
 def _fmt_duration(seconds: float) -> str:
