@@ -149,12 +149,17 @@ def _try_detect_schema(subagent: str, content: str) -> SchemaProduced | None:
 def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
     """Yield StreamEvents by consuming agent.stream_events(version='v3').
 
-    Uses the deepagents 0.6+ high-level streaming API:
-        stream.subagents  -> yields as each subagent executes
-        subagent.tool_calls -> yields as each tool fires
+    Uses the deepagents 0.6+ v3 streaming API:
+        stream.interleave("messages", "subagents") -> coordinator messages and
+            subagent handles in arrival order; both share the same pump so they
+            must be interleaved rather than iterated sequentially.
+        subagent.interleave("tool_calls", "messages") -> tool calls and final
+            messages from each subagent in arrival order.
         tool_call.output_deltas -> live output fragments
-        tool_call.output  -> full result when complete
+        tool_call.output  -> full result string when complete
         tool_call.error   -> set if the tool raised
+
+    Note: msg.text is a SyncTextProjection, not a str; use str(msg.text).
     """
     import time
 
@@ -166,68 +171,71 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
         version="v3",
     )
 
-    for subagent in stream.subagents:
-        t_start = time.monotonic()
-        yield SubagentStarted(name=subagent.name, t=t_start)
+    subagent_starts: dict[str, float] = {}
 
-        for tool_call in subagent.tool_calls:
-            args_preview = _truncate(str(tool_call.input), 80)
-            yield ToolCallMade(
-                subagent=subagent.name,
-                tool=tool_call.tool_name,
-                args_preview=args_preview,
-            )
+    for channel, item in stream.interleave("messages", "subagents"):
+        if channel == "subagents":
+            subagent = item
+            t_start = time.monotonic()
+            subagent_starts[subagent.name] = t_start
+            yield SubagentStarted(name=subagent.name, t=t_start)
 
-            # Collect full output (output_deltas stream, then .output when done)
-            output_parts: list[str] = []
-            for delta in tool_call.output_deltas:
-                output_parts.append(str(delta))
-
-            full_output = tool_call.output if tool_call.output else "".join(output_parts)
-            output_str = full_output if isinstance(full_output, str) else str(full_output)
-
-            if tool_call.error is not None:
-                yield ToolResultReceived(
-                    subagent=subagent.name,
-                    tool=tool_call.tool_name,
-                    result_preview=f"ERROR: {_truncate(str(tool_call.error), 75)}",
-                )
-            else:
-                schema_evt = _try_detect_schema(subagent.name, output_str)
-                if schema_evt:
-                    yield schema_evt
-                else:
-                    yield ToolResultReceived(
+            for inner_channel, inner_item in subagent.interleave("tool_calls", "messages"):
+                if inner_channel == "tool_calls":
+                    tool_call = inner_item
+                    args_preview = _truncate(str(tool_call.input), 80)
+                    yield ToolCallMade(
                         subagent=subagent.name,
                         tool=tool_call.tool_name,
-                        result_preview=_truncate(output_str, 80),
+                        args_preview=args_preview,
                     )
 
-        # Check subagent final message for schema (no-tool-call output)
-        for msg in subagent.messages:
-            text = getattr(msg, "text", "") or ""
-            if text.strip().startswith("{"):
-                schema_evt = _try_detect_schema(subagent.name, text)
-                if schema_evt:
-                    yield schema_evt
-                    break
-            # Capture consolidator plain-text output as final answer candidate
-            if subagent.name == "consolidator" and text and len(text) > 20:
-                final_answer = text
+                    output_parts: list[str] = []
+                    for delta in tool_call.output_deltas:
+                        output_parts.append(str(delta))
 
-        yield SubagentFinished(name=subagent.name, duration_s=time.monotonic() - t_start)
+                    full_output = tool_call.output if tool_call.output else "".join(output_parts)
+                    output_str = full_output if isinstance(full_output, str) else str(full_output)
 
-    # Capture the coordinator's final message if consolidator didn't set it.
-    # stream.messages yields LangChain AIMessage objects (.content), not the
-    # deepagents SubagentMessage wrappers (.text) used inside subagent loops.
-    for msg in stream.messages:
-        text = getattr(msg, "content", "") or getattr(msg, "text", "") or ""
-        if isinstance(text, list):
-            # AIMessage.content can be a list of content blocks
-            text = " ".join(
-                b.get("text", "") if isinstance(b, dict) else str(b) for b in text
+                    if tool_call.error is not None:
+                        yield ToolResultReceived(
+                            subagent=subagent.name,
+                            tool=tool_call.tool_name,
+                            result_preview=f"ERROR: {_truncate(str(tool_call.error), 75)}",
+                        )
+                    else:
+                        schema_evt = _try_detect_schema(subagent.name, output_str)
+                        if schema_evt:
+                            yield schema_evt
+                        else:
+                            yield ToolResultReceived(
+                                subagent=subagent.name,
+                                tool=tool_call.tool_name,
+                                result_preview=_truncate(output_str, 80),
+                            )
+
+                elif inner_channel == "messages":
+                    msg = inner_item
+                    # msg.text is SyncTextProjection; str() drives the pump and
+                    # returns the full accumulated text.
+                    text = str(msg.text)
+                    if text.strip().startswith("{"):
+                        schema_evt = _try_detect_schema(subagent.name, text)
+                        if schema_evt:
+                            yield schema_evt
+                    if subagent.name == "consolidator" and text and len(text) > 20:
+                        final_answer = text
+
+            yield SubagentFinished(
+                name=subagent.name,
+                duration_s=time.monotonic() - subagent_starts.get(subagent.name, t0),
             )
-        if text and len(text) > 20 and not final_answer:
-            final_answer = text
+
+        elif channel == "messages":
+            # Coordinator direct response (no subagent dispatched).
+            msg = item
+            text = str(msg.text)
+            if text and len(text) > 20 and not final_answer:
+                final_answer = text
 
     yield RunFinished(total_s=time.monotonic() - t0, final_answer=final_answer)
