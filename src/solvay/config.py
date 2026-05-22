@@ -66,10 +66,15 @@ class SolvayConfig:
     2. ``default_model`` -- global override (typically set from ``--model`` CLI flag)
     3. ``$SOLVAY_MODEL`` environment variable
     4. :data:`DEFAULT_MODEL` hardcoded fallback
+
+    ``model_kwargs`` are passed verbatim to ``init_chat_model`` (and thus to the
+    provider's model constructor).  Use this to set provider-specific limits, e.g.
+    ``{"num_predict": 16384}`` for Ollama to cap Qwen thinking-mode runaway.
     """
 
     models: dict[Role, str] = field(default_factory=lambda: {})
     default_model: str | None = None
+    model_kwargs: dict[str, Any] = field(default_factory=lambda: {})
     solver_loop: SolverLoopConfig = field(default_factory=SolverLoopConfig)
     python_exec: PythonExecConfig = field(default_factory=PythonExecConfig)
     harness: HarnessConfig = field(default_factory=HarnessConfig)
@@ -94,15 +99,20 @@ class SolvayConfig:
         return model
 
 
-def resolve_model(model: "str | BaseChatModel") -> "BaseChatModel":
-    """Return a BaseChatModel, calling init_chat_model if given a string."""
+def resolve_model(model: "str | BaseChatModel", **kwargs: Any) -> "BaseChatModel":
+    """Return a BaseChatModel, calling init_chat_model if given a string.
+
+    Extra kwargs are forwarded to init_chat_model (and thus to the provider
+    model constructor).  Useful for provider-specific caps such as
+    ``num_predict=16384`` for Ollama.
+    """
     from langchain_core.language_models import BaseChatModel as _BaseChatModel
 
     if isinstance(model, _BaseChatModel):
         return model
     from langchain.chat_models import init_chat_model
 
-    return init_chat_model(model)
+    return init_chat_model(model, **kwargs)
 
 
 def _build_vertex_model(model_string: str) -> "BaseChatModel":

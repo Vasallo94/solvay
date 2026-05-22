@@ -136,7 +136,14 @@ def solve(
 
     from solvay.config import SolvayConfig
 
-    config = SolvayConfig(default_model=model)
+    # For Ollama models cap generation to prevent Qwen thinking-mode runaway.
+    import os as _os
+    _effective_model = model or _os.environ.get("SOLVAY_MODEL", "")
+    _model_kwargs: dict = {}
+    if _effective_model.startswith("ollama:"):
+        _model_kwargs = {"num_predict": 16384}
+
+    config = SolvayConfig(default_model=model, model_kwargs=_model_kwargs)
     resolved = config.model_for("orchestrator")
     model_label = (
         f"vertexai:{resolved.model_name}"  # type: ignore[union-attr]

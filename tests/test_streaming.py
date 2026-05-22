@@ -104,11 +104,23 @@ class _FakeSubagent:
     tool_calls: list[_FakeToolCall] = _field(default_factory=list)
     messages: list[_FakeMsg] = _field(default_factory=list)
 
+    def interleave(self, *channels: str):
+        for tc in self.tool_calls:
+            yield ("tool_calls", tc)
+        for msg in self.messages:
+            yield ("messages", msg)
+
 
 @_dc
 class _FakeStream:
     subagents: list[_FakeSubagent] = _field(default_factory=list)
     messages: list[_FakeMsg] = _field(default_factory=list)
+
+    def interleave(self, *channels: str):
+        for subagent in self.subagents:
+            yield ("subagents", subagent)
+        for msg in self.messages:
+            yield ("messages", msg)
 
 
 class _FakeAgent:
