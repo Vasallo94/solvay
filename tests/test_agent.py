@@ -40,3 +40,24 @@ def test_create_agent_wires_native_memory_backend_and_permissions() -> None:
     assert kwargs["memory"] == [LONG_TERM_MEMORY_PATH, HARNESS_NOTES_PATH]
     assert isinstance(kwargs["backend"], CompositeBackend)
     assert kwargs["permissions"]
+
+
+def test_no_auto_general_purpose_subagent() -> None:
+    """Ensure 'general-purpose' is explicitly included in the subagents list.
+
+    deepagents auto-injects a generic 'general-purpose' subagent when none
+    with that name exists, which biases the orchestrator LLM away from the
+    solver subagent. By pre-registering our own 'general-purpose' clone of
+    the solver we prevent the auto-injection.
+    """
+    from solvay.agent import create_solvay_agent
+
+    with patch("solvay.agent.create_deep_agent") as fake_create:
+        fake_create.return_value = object()
+        create_solvay_agent()
+
+    subagents = fake_create.call_args.kwargs["subagents"]
+    names = [sa["name"] if isinstance(sa, dict) else sa.name for sa in subagents]
+    assert "general-purpose" in names, (
+        f"'general-purpose' subagent not found in subagents list: {names}"
+    )

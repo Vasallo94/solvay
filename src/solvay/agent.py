@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any, Literal, cast
 
-from deepagents import SubAgent, create_deep_agent
+from deepagents import CompiledSubAgent, SubAgent, create_deep_agent
 from tavily import TavilyClient
 
 from solvay.config import SolvayConfig
@@ -85,6 +85,11 @@ def create_solvay_agent(
     parser = create_parser_subagent(config)
     researcher = create_researcher_subagent(config, web_search, url_fetch)
     solver = create_solver_subagent(config, web_search, url_fetch)
+    gp_as_solver = CompiledSubAgent(
+        name="general-purpose",
+        description=solver["description"],
+        runnable=solver["runnable"],
+    )
     verifier = create_verifier_subagent(config)
     peer_reviewer = create_peer_reviewer_subagent(config, web_search)
     consolidator = create_consolidator_subagent(config)
@@ -103,6 +108,7 @@ def create_solvay_agent(
             cast(SubAgent, verifier),
             cast(SubAgent, peer_reviewer),
             cast(SubAgent, consolidator),
+            gp_as_solver,
         ],
     )
 
