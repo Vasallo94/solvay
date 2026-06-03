@@ -10,6 +10,7 @@ from tavily import TavilyClient
 
 from solvay.config import SolvayConfig
 from solvay.harness import build_backend, build_permissions, memory_paths
+from solvay.middleware import SubagentCallLimitMiddleware
 from solvay.subagents import load_prompt
 from solvay.subagents.consolidator import create_consolidator_subagent
 from solvay.subagents.parser import create_parser_subagent
@@ -98,6 +99,7 @@ def create_solvay_agent(
         model=config.model_for("orchestrator"),
         tools=[web_search],
         system_prompt=load_prompt("orchestrator"),
+        middleware=[SubagentCallLimitMiddleware()],
         memory=memory_paths(config.harness),
         backend=build_backend(),
         permissions=build_permissions(),
