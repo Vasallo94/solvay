@@ -246,14 +246,20 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
             msg = item
             for tc in getattr(msg, "tool_calls", []):
                 if isinstance(tc, dict) and tc.get("name") == "task":
-                    args = tc.get("args", {})
-                    yield OrchestratorDispatched(
-                        subagent_type=args.get("subagent_type", "?"),
-                        description_preview=_truncate(
-                            args.get("description", ""), 120
-                        ),
-                        t=time.monotonic(),
-                    )
+                    raw_args = tc.get("args", {})
+                    if isinstance(raw_args, str):
+                        try:
+                            raw_args = json.loads(raw_args)
+                        except (json.JSONDecodeError, ValueError):
+                            raw_args = {}
+                    if isinstance(raw_args, dict):
+                        yield OrchestratorDispatched(
+                            subagent_type=raw_args.get("subagent_type", "?"),
+                            description_preview=_truncate(
+                                raw_args.get("description", ""), 120
+                            ),
+                            t=time.monotonic(),
+                        )
             text = str(msg.text)
             if text and len(text) > 20 and not final_answer:
                 final_answer = text
