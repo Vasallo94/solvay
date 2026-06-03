@@ -51,6 +51,13 @@ class RunFinished:
     final_answer: str
 
 
+@dataclass
+class OrchestratorDispatched:
+    subagent_type: str
+    description_preview: str  # first ~120 chars
+    t: float
+
+
 StreamEvent = Union[
     SubagentStarted,
     ToolCallMade,
@@ -58,6 +65,7 @@ StreamEvent = Union[
     SchemaProduced,
     SubagentFinished,
     RunFinished,
+    OrchestratorDispatched,
 ]
 
 # ---------------------------------------------------------------------------
@@ -93,6 +101,7 @@ class RunCollector:
     subagent_runs: list[SubagentRun] = field(default_factory=list)
     total_s: float = 0.0
     final_answer: str = ""
+    orchestrator_dispatches: list[OrchestratorDispatched] = field(default_factory=list)
 
     def accumulate(self, event: StreamEvent) -> None:
         if isinstance(event, SubagentStarted):
@@ -113,6 +122,8 @@ class RunCollector:
         elif isinstance(event, RunFinished):
             self.total_s = event.total_s
             self.final_answer = event.final_answer
+        elif isinstance(event, OrchestratorDispatched):
+            self.orchestrator_dispatches.append(event)
 
 
 # ---------------------------------------------------------------------------
@@ -232,8 +243,17 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
             )
 
         elif channel == "messages":
-            # Coordinator direct response (no subagent dispatched).
             msg = item
+            for tc in getattr(msg, "tool_calls", []):
+                if isinstance(tc, dict) and tc.get("name") == "task":
+                    args = tc.get("args", {})
+                    yield OrchestratorDispatched(
+                        subagent_type=args.get("subagent_type", "?"),
+                        description_preview=_truncate(
+                            args.get("description", ""), 120
+                        ),
+                        t=time.monotonic(),
+                    )
             text = str(msg.text)
             if text and len(text) > 20 and not final_answer:
                 final_answer = text

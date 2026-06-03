@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from solvay.streaming import (
+    OrchestratorDispatched,
     RunCollector,
     RunFinished,
     SchemaProduced,
@@ -96,6 +97,12 @@ class _FakeToolCall:
 @_dc
 class _FakeMsg:
     text: str
+
+
+@_dc
+class _FakeMsgWithToolCalls:
+    text: str
+    tool_calls: list[dict[str, _Any]] = _field(default_factory=list)
 
 
 @_dc
@@ -197,3 +204,63 @@ class TestParseStream:
         events = list(parse_stream(agent, "test"))
         finished = next(e for e in events if isinstance(e, RunFinished))
         assert finished.final_answer == "The answer is 42 m/s because gravity."
+
+
+class TestOrchestratorDispatched:
+    def _make_agent(self, stream: _FakeStream) -> _FakeAgent:
+        return _FakeAgent(stream)
+
+    def test_orchestrator_dispatch_captured_from_messages(self) -> None:
+        msg = _FakeMsgWithToolCalls(
+            text="",
+            tool_calls=[{
+                "name": "task",
+                "args": {"subagent_type": "parser", "description": "A ball drops from 10m"},
+            }],
+        )
+        stream = _FakeStream(
+            subagents=[_FakeSubagent(name="parser")],
+            messages=[msg],
+        )
+        agent = self._make_agent(stream)
+        events = list(parse_stream(agent, "test"))
+        dispatches = [e for e in events if isinstance(e, OrchestratorDispatched)]
+        assert len(dispatches) == 1
+        assert dispatches[0].subagent_type == "parser"
+
+    def test_orchestrator_dispatch_description_truncated(self) -> None:
+        long_desc = "x" * 200
+        msg = _FakeMsgWithToolCalls(
+            text="",
+            tool_calls=[{
+                "name": "task",
+                "args": {"subagent_type": "solver", "description": long_desc},
+            }],
+        )
+        stream = _FakeStream(messages=[msg])
+        agent = self._make_agent(stream)
+        events = list(parse_stream(agent, "test"))
+        dispatches = [e for e in events if isinstance(e, OrchestratorDispatched)]
+        assert len(dispatches) == 1
+        assert len(dispatches[0].description_preview) <= 123
+
+    def test_non_task_tool_calls_ignored(self) -> None:
+        msg = _FakeMsgWithToolCalls(
+            text="",
+            tool_calls=[{"name": "web_search", "args": {"query": "test"}}],
+        )
+        stream = _FakeStream(messages=[msg])
+        agent = self._make_agent(stream)
+        events = list(parse_stream(agent, "test"))
+        dispatches = [e for e in events if isinstance(e, OrchestratorDispatched)]
+        assert len(dispatches) == 0
+
+
+class TestRunCollectorOrchestratorDispatched:
+    def test_accumulate_orchestrator_dispatched(self) -> None:
+        c = RunCollector(problem="test", model="test-model")
+        c.accumulate(OrchestratorDispatched(subagent_type="parser", description_preview="test", t=0.0))
+        c.accumulate(OrchestratorDispatched(subagent_type="solver", description_preview="test", t=1.0))
+        assert len(c.orchestrator_dispatches) == 2
+        assert c.orchestrator_dispatches[0].subagent_type == "parser"
+        assert c.orchestrator_dispatches[1].subagent_type == "solver"
