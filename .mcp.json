@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "solvay": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "-m", "solvay.mcp_server"]
+    }
+  }
+}
