@@ -42,6 +42,23 @@ def test_create_agent_wires_native_memory_backend_and_permissions() -> None:
     assert kwargs["permissions"]
 
 
+def test_peer_reviewer_has_physics_checklist_tool() -> None:
+    """The peer reviewer subagent must include physics_checklist in its tools."""
+    from solvay.config import SolvayConfig
+    from solvay.subagents.peer_reviewer import create_peer_reviewer_subagent
+
+    stub = lambda **kw: {"results": [], "error": "stub"}
+    config = SolvayConfig(default_model="fake-model")
+    spec = create_peer_reviewer_subagent(config, web_search_tool=stub)
+
+    tool_names = []
+    for t in spec["tools"]:
+        name = getattr(t, "__name__", None) or getattr(t, "name", str(t))
+        tool_names.append(name)
+
+    assert "physics_checklist" in tool_names
+
+
 def test_no_auto_general_purpose_subagent() -> None:
     """Ensure 'general-purpose' is explicitly included in the subagents list.
 
