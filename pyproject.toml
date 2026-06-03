@@ -21,6 +21,7 @@ dependencies = [
     "typer[all]>=0.15",
     "pydantic>=2.10",
     "tavily-python>=0.5",
+    "fastmcp>=2.0",
     "RestrictedPython>=7.4",
     "langchain-ollama>=1.1.0",
     "python-dotenv>=1.2.2",
