@@ -8,6 +8,7 @@ from typing import Any, cast
 
 from deepagents import CompiledSubAgent
 from langchain.agents import create_agent
+from langchain.agents.middleware import ModelCallLimitMiddleware
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
@@ -18,6 +19,7 @@ from solvay.config import SolvayConfig
 from solvay.schemas import SolutionDraft, SolverResponse, Verdict
 from solvay.subagents import load_prompt
 from solvay.tools.dimensional import check_dimensions
+from solvay.tools.physics_checklist import physics_checklist
 from solvay.tools.python_exec import python_exec
 
 
@@ -320,11 +322,13 @@ def create_solver_subagent(
     from solvay.config import resolve_model
 
     mkwargs = config.model_kwargs
+    call_limit = [ModelCallLimitMiddleware(run_limit=25)]
     solver_model = create_agent(
         resolve_model(config.model_for("solver"), **mkwargs),
         system_prompt=load_prompt("solver"),
         tools=[python_exec, check_dimensions, web_search_tool, url_fetch_tool],
         response_format=SolverResponse,
+        middleware=call_limit,
         name="solver",
     )
     verifier_model = create_agent(
@@ -332,13 +336,15 @@ def create_solver_subagent(
         system_prompt=load_prompt("verifier"),
         tools=[python_exec, check_dimensions],
         response_format=Verdict,
+        middleware=call_limit,
         name="verifier",
     )
     reviewer_model = create_agent(
         resolve_model(config.model_for("peer_reviewer"), **mkwargs),
         system_prompt=load_prompt("peer_reviewer"),
-        tools=[python_exec, web_search_tool],
+        tools=[python_exec, web_search_tool, physics_checklist],
         response_format=Verdict,
+        middleware=call_limit,
         name="peer_reviewer",
     )
 
