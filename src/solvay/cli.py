@@ -64,6 +64,7 @@ def _schema_summary(schema_type: str, data: dict) -> str:
 
 def _print_event(event: object, verbose: bool) -> None:
     from solvay.streaming import (
+        OrchestratorDispatched,
         RunFinished,
         SchemaProduced,
         SubagentFinished,
@@ -72,7 +73,9 @@ def _print_event(event: object, verbose: bool) -> None:
         ToolResultReceived,
     )
 
-    if isinstance(event, SubagentStarted):
+    if isinstance(event, OrchestratorDispatched):
+        typer.echo(f"  \033[33m▶\033[0m orchestrator → {event.subagent_type}")
+    elif isinstance(event, SubagentStarted):
         typer.echo(f"  \033[36m⟳\033[0m {event.name}...")
     elif isinstance(event, SubagentFinished):
         typer.echo(f"  \033[32m✓\033[0m {event.name}  ({event.duration_s:.0f}s)")
