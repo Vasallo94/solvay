@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 
 from solvay.schemas import (
@@ -15,7 +16,7 @@ from solvay.schemas import (
     SolutionDraft,
     Verdict,
 )
-from solvay.subagents.solver_loop import build_solver_loop_graph
+from solvay.subagents.solver_loop import SolverLoopGraphState, build_solver_loop_graph
 
 
 def _make_inputs() -> dict[str, object]:
@@ -219,3 +220,62 @@ class TestSolverLoopCritiqueHistory:
         result = graph.invoke(_make_inputs())
         assert result["termination_reason"] == "consensus"
         assert len(result["critique_history"]) == 2
+
+
+class TestPrepareNode:
+    """Tests for the prepare node that parses description into state fields."""
+
+    def _make_message_only_input(self, description: str) -> dict[str, object]:
+        return {"messages": [HumanMessage(content=description)]}
+
+    def test_state_accepts_empty_problem_spec_and_research_brief(self) -> None:
+        state = SolverLoopGraphState(messages=[HumanMessage(content="test")])
+        assert state.problem_spec == {}
+        assert state.research_brief == {}
+
+    def test_prepare_parses_valid_json_blocks(self) -> None:
+        spec = '{"statement": "A ball drops", "domain": "mechanics"}'
+        brief = '{"principles": ["F=ma"], "candidate_equations": []}'
+        description = f"Problem spec:\n{spec}\n\nResearch:\n{brief}"
+
+        solver_model = FakeListChatModel(responses=[_draft_json()])
+        verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
+        reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
+        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+
+        result = graph.invoke(self._make_message_only_input(description))
+        assert result["problem_spec"]["domain"] == "mechanics"
+        assert result["research_brief"]["principles"] == ["F=ma"]
+        assert result["termination_reason"] == "consensus"
+
+    def test_prepare_handles_malformed_json(self) -> None:
+        description = "Problem spec:\n{not valid json}\n\nResearch:\n{also bad}"
+        solver_model = FakeListChatModel(responses=[_draft_json()])
+        verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
+        reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
+        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+
+        result = graph.invoke(self._make_message_only_input(description))
+        assert result["problem_spec"].get("raw_description") is not None
+        assert result["termination_reason"] == "consensus"
+
+    def test_prepare_skips_when_fields_already_populated(self) -> None:
+        inputs = _make_inputs()
+        solver_model = FakeListChatModel(responses=[_draft_json()])
+        verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
+        reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
+        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+
+        result = graph.invoke(inputs)
+        assert result["problem_spec"]["domain"] == "mechanics"
+        assert result["termination_reason"] == "consensus"
+
+    def test_prepare_handles_empty_messages(self) -> None:
+        solver_model = FakeListChatModel(responses=[_draft_json()])
+        verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
+        reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
+        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+
+        result = graph.invoke({"messages": []})
+        assert result.get("problem_spec", {}) == {}
+        assert result["termination_reason"] == "consensus"

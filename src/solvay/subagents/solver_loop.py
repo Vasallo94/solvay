@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, cast
 
 from deepagents import CompiledSubAgent
@@ -28,8 +29,8 @@ class SolverLoopGraphState(BaseModel):
     messages: list[Any] = Field(default_factory=list)
 
     # Inputs
-    problem_spec: dict[str, Any]
-    research_brief: dict[str, Any]
+    problem_spec: dict[str, Any] = Field(default_factory=dict)
+    research_brief: dict[str, Any] = Field(default_factory=dict)
 
     # Loop control
     iteration: int = 0
@@ -110,6 +111,60 @@ def build_solver_loop_graph(
                 last_message = messages[-1]
                 return _parse_json_response(getattr(last_message, "content", ""))
         return {}
+
+    def _parse_description(text: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Extract problem_spec and research_brief JSON from a description string."""
+        problem_spec: dict[str, Any] = {}
+        research_brief: dict[str, Any] = {}
+
+        spec_match = re.search(
+            r"Problem spec:\s*\n(\{.*?\})\s*(?:\n\n|$)",
+            text,
+            re.DOTALL,
+        )
+        if spec_match:
+            try:
+                problem_spec = json.loads(spec_match.group(1))
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        brief_match = re.search(
+            r"Research:\s*\n(\{.*?\})\s*$",
+            text,
+            re.DOTALL,
+        )
+        if brief_match:
+            try:
+                research_brief = json.loads(brief_match.group(1))
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        if not problem_spec:
+            problem_spec = {"raw_description": text}
+
+        return problem_spec, research_brief
+
+    def prepare(state: SolverLoopGraphState) -> dict[str, Any]:
+        """Parse problem_spec and research_brief from messages if not already set."""
+        if state.problem_spec and state.research_brief:
+            return {}
+
+        if not state.messages:
+            return {}
+
+        first_msg = state.messages[0]
+        content = getattr(first_msg, "content", "")
+        if not isinstance(content, str):
+            content = str(content)
+
+        problem_spec, research_brief = _parse_description(content)
+
+        updates: dict[str, Any] = {}
+        if not state.problem_spec:
+            updates["problem_spec"] = problem_spec
+        if not state.research_brief:
+            updates["research_brief"] = research_brief
+        return updates
 
     def solve(state: SolverLoopGraphState) -> dict[str, Any]:
         """Invoke solver LLM to produce a SolutionDraft or signal blocked."""
@@ -235,11 +290,13 @@ def build_solver_loop_graph(
 
     builder = StateGraph(SolverLoopGraphState)
 
+    builder.add_node("prepare", prepare)
     builder.add_node("solve", solve)
     builder.add_node("critique", critique)
     builder.add_node("judge", judge)
 
-    builder.add_edge(START, "solve")
+    builder.add_edge(START, "prepare")
+    builder.add_edge("prepare", "solve")
     builder.add_edge("solve", "critique")
     builder.add_edge("critique", "judge")
     builder.add_conditional_edges("judge", route_after_judge, ["solve", END])
