@@ -11,18 +11,19 @@
   "subdomain": "magnetohydrodynamics",
   "tags": ["eddy-currents", "conducting-sphere", "quadrupole-field", "braking-torque"],
   "difficulty": "hard",
-  "statement": "A solid conducting sphere of radius R, uniform conductivity sigma, and moment of inertia I = 2*m*R**2/5 rotates with angular velocity omega_0 about the z-axis. It is placed inside a static external magnetic quadrupole field B = B0*(x*x_hat - y*y_hat). Compute the total Ohmic power dissipated by eddy currents to leading order in the small-conductivity limit, assuming the field penetrates uniformly.",
+  "statement": "A solid conducting sphere of radius R, electrical conductivity sigma, and mass m spins with initial angular velocity omega_0 about the z-axis in a magnetic quadrupole field B_ext = (B0/R)(x*y_hat + y*x_hat). Working to lowest order in Rm = mu_0*sigma*omega*R**2 << 1, find the braking torque N on the sphere.",
   "given": {
     "R": "sphere radius (m)",
     "sigma": "electrical conductivity (S/m)",
-    "B0": "quadrupole field amplitude (T/m^0, field evaluated at R)",
+    "m": "mass (kg)",
+    "B0": "quadrupole field strength (T)",
     "omega": "angular velocity (rad/s)"
   },
-  "find": "Total eddy-current power dissipated P as a function of sigma, B0, R, and omega.",
+  "find": "Braking torque N as a function of sigma, B0, R, and omega.",
   "expected": {
     "kind": "symbolic",
-    "value": "32*pi*sigma*B0**2*R**5*omega**2/315",
-    "unit": "W",
+    "value": "32*pi*sigma*B0**2*R**5*omega/315",
+    "unit": "N*m",
     "tolerance_rel": 0.01,
     "verification": {
       "method": "sympy_equivalence",
@@ -35,5 +36,5 @@
     "score": 0.05,
     "verdict": "clean"
   },
-  "notes": "Derived by expanding the induced EMF in vector spherical harmonics; only the l=2 quadrupole mode couples to the external field and survives the angular integral. The numerical prefactor 32*pi/315 is the hallmark of the l=2 Ohmic dissipation integral over the sphere volume."
+  "notes": "Requires electric field correction for J*n_hat=0 at surface. Most models miss the boundary condition and get 16*pi/105 instead of 32*pi/315. The torque is linear in omega (eddy current braking)."
 }
