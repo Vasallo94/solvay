@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import datetime as dt
 import importlib.metadata
-import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-import sympy
-
 from solvay.benchmark.config import BenchConfig
 from solvay.benchmark.fingerprint import compute_fingerprint
+from solvay.benchmark.grading import evaluate_correct
 from solvay.benchmark.jsonl import RunHeader, RunRecord, RunWriter
 from solvay.benchmark.profiles import get_profile
-from solvay.benchmark.schema import Expected, Problem
+from solvay.benchmark.schema import Problem
 from solvay.config import SolvayConfig
 
 
@@ -42,27 +40,6 @@ def _solvay_version() -> str:
     except importlib.metadata.PackageNotFoundError:
         return "unknown"
 
-
-def _evaluate_correct(answer_raw: str, expected: Expected) -> bool:
-    numbers = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", answer_raw)
-    if not numbers:
-        return False
-    try:
-        target = float(sympy.sympify(expected.value).evalf())
-    except ValueError, TypeError, sympy.SympifyError:
-        return False
-    for num in numbers:
-        try:
-            candidate = float(num)
-        except ValueError:
-            continue
-        if target == 0:
-            if abs(candidate) <= expected.tolerance_rel:
-                return True
-        else:
-            if abs(candidate - target) / abs(target) <= expected.tolerance_rel:
-                return True
-    return False
 
 
 def run_matrix(
@@ -96,11 +73,12 @@ def run_matrix(
                             if res.answer_extracted is not None
                             else res.answer_raw
                         )
-                        correct = (
-                            False
-                            if res.error
-                            else _evaluate_correct(answer_for_eval, problem.expected)
-                        )
+                        if res.error:
+                            correct, grading_method = False, "error"
+                        else:
+                            correct, grading_method = evaluate_correct(
+                                answer_for_eval, problem.expected, problem, config
+                            )
                         writer.write(
                             RunRecord(
                                 problem_id=problem.id,
@@ -114,6 +92,7 @@ def run_matrix(
                                 tokens=res.tokens,
                                 trace_id=res.trace_id,
                                 error=res.error,
+                                grading_method=grading_method,
                             )
                         )
     return out_path

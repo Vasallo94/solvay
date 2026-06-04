@@ -86,3 +86,16 @@ def test_run_matrix_correctness_uses_expected_value(tmp_path: Path) -> None:
     run_matrix(spec, out_path=out, config=BenchConfig())
     _, records = read_run(out)
     assert records[0].correct is True
+
+
+def test_run_matrix_records_grading_method(tmp_path: Path) -> None:
+    spec = MatrixSpec(
+        problems=[_fake_problem()],
+        profile_names=["fake"],
+        models=["anthropic:claude-sonnet-4-6"],
+        repeats=1,
+    )
+    out = tmp_path / "run.jsonl"
+    run_matrix(spec, out_path=out, config=BenchConfig())
+    _, records = read_run(out)
+    assert records[0].grading_method in ("sympy", "llm-judge", "error", "regex")

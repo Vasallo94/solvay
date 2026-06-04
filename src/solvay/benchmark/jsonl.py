@@ -37,6 +37,7 @@ class RunRecord:
     tokens: dict[str, int] = field(default_factory=dict)
     trace_id: str | None = None
     error: str | None = None
+    grading_method: str = "regex"
 
 
 class RunWriter:

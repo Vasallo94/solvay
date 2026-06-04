@@ -20,5 +20,6 @@ class BenchConfig:
     composer_model: str = DEFAULT_MODEL
     probe_model: str = DEFAULT_MODEL
     error_classifier_model: str = DEFAULT_MODEL
+    grader_model: str = DEFAULT_MODEL
     composer_max_attempts: int = 3
     cost_guard_threshold: int = 100
