@@ -171,5 +171,35 @@ def generate_cmd(
     )
 
 
+@app.command("compare")
+def compare_cmd(
+    run_file: Annotated[Path, typer.Argument(help="Path to a benchmark JSONL run file.")],
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write markdown report to file."),
+    ] = None,
+) -> None:
+    """Compare profiles from a benchmark run."""
+    from solvay.benchmark.compare import build_comparison, format_markdown
+    from solvay.benchmark.jsonl import read_run
+
+    if not run_file.exists():
+        typer.echo(f"File not found: {run_file}", err=True)
+        raise typer.Exit(1)
+
+    header, records = read_run(run_file)
+    if not records:
+        typer.echo("No records found.", err=True)
+        raise typer.Exit(1)
+
+    report = build_comparison(header, records)
+    md = format_markdown(report)
+    typer.echo(md)
+
+    if output:
+        output.write_text(md, encoding="utf-8")
+        typer.echo(f"\nReport saved to {output}")
+
+
 if __name__ == "__main__":
     app()
