@@ -1,0 +1,39 @@
+{
+  "id": "novel-wav-001",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "solvay-stress-test-2026-06-02",
+    "generated_at": "2026-06-02T00:00:00Z",
+    "seed": null
+  },
+  "domain": "waves",
+  "subdomain": "analogue-gravity",
+  "tags": ["acoustic-black-hole", "hawking-radiation", "sonic-horizon", "dumb-hole"],
+  "difficulty": "hard",
+  "statement": "In a converging de Laval nozzle, the background fluid velocity reaches the local speed of sound c_s at the throat, creating a sonic horizon analogous to a black hole event horizon. Using Unruh's analogy between acoustic perturbations in a flowing fluid and quantum fields in curved spacetime, derive the Hawking temperature T_H of the acoustic black hole in terms of the velocity gradient Q = dv/dx evaluated at the sonic point, the reduced Planck constant hbar, the speed of sound c_s, and Boltzmann's constant k_B.",
+  "given": {
+    "c_s": "speed of sound at the throat (m/s)",
+    "Q": "velocity gradient dv/dx at sonic point (1/s)",
+    "hbar": "reduced Planck constant (J*s)",
+    "k_B": "Boltzmann constant (J/K)"
+  },
+  "find": "Hawking temperature T_H of the acoustic analogue black hole.",
+  "expected": {
+    "kind": "symbolic",
+    "value": "hbar*c_s*Q/(2*pi*k_B*c_s**2)",
+    "unit": "K",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "sympy_equivalence",
+      "script": null
+    }
+  },
+  "contamination": {
+    "checked_at": "2026-06-02T00:00:00Z",
+    "method": "novel-problem-design",
+    "score": 0.05,
+    "verdict": "clean"
+  },
+  "notes": "Unruh (1981) showed that the surface gravity of an acoustic horizon is kappa = c_s * Q / c_s = Q (in appropriate units). The Hawking temperature follows from T_H = hbar*kappa/(2*pi*k_B). The simplification hbar*c_s*Q/(2*pi*k_B*c_s**2) = hbar*Q/(2*pi*k_B*c_s) holds dimensionally; sympy_equivalence will confirm the ratio."
+}

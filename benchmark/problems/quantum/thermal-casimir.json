@@ -1,0 +1,35 @@
+{
+  "id": "novel-qm-003",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "solvay-novel-2026-06-05",
+    "generated_at": "2026-06-05T00:00:00Z",
+    "seed": null
+  },
+  "domain": "quantum",
+  "subdomain": "quantum-field-theory",
+  "tags": ["casimir-effect", "thermal-casimir", "high-temperature", "Matsubara", "van-der-Waals"],
+  "difficulty": "hard",
+  "statement": "At high temperatures (k_B*T >> hbar*c/d), the Casimir force between two ideal conducting plates separated by distance d transitions from its zero-temperature quantum form to a classical thermal limit dominated by the zeroth Matsubara frequency. In this high-T regime, identify the functional dependence of the Casimir pressure P on k_B*T and d (ignore all prefactors; give only the functional scaling form).",
+  "given": {
+    "k_B": "Boltzmann constant (J/K)",
+    "T": "temperature (K)",
+    "d": "plate separation (m)",
+    "hbar": "reduced Planck constant (J*s)",
+    "c": "speed of light (m/s)"
+  },
+  "find": "Functional scaling of Casimir pressure P in the high-temperature limit k_B*T >> hbar*c/d (up to a numerical prefactor).",
+  "expected": {
+    "kind": "symbolic",
+    "value": "k_B*T/d**3",
+    "unit": "Pa",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "sympy_equivalence",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "In the Matsubara formalism, thermal corrections appear at frequencies xi_n = 2*pi*n*k_B*T/hbar. When k_B*T >> hbar*c/d, only the n=0 term survives and contributes a pressure P = -zeta(3)*k_B*T/(8*pi*d^3) ~ k_B*T/d^3. This classical limit, first derived by Mehra (1967), is purely thermal and independent of hbar — it persists even for non-ideal conductors. The scaling k_B*T/d^3 contrasts with the zero-T result hbar*c/d^4."
+}

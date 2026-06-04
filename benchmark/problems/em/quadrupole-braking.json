@@ -1,0 +1,39 @@
+{
+  "id": "novel-em-001",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "solvay-stress-test-2026-06-02",
+    "generated_at": "2026-06-02T00:00:00Z",
+    "seed": null
+  },
+  "domain": "electromagnetism",
+  "subdomain": "magnetohydrodynamics",
+  "tags": ["eddy-currents", "conducting-sphere", "quadrupole-field", "braking-torque"],
+  "difficulty": "hard",
+  "statement": "A solid conducting sphere of radius R, uniform conductivity sigma, and moment of inertia I = 2*m*R**2/5 rotates with angular velocity omega_0 about the z-axis. It is placed inside a static external magnetic quadrupole field B = B0*(x*x_hat - y*y_hat). Compute the total Ohmic power dissipated by eddy currents to leading order in the small-conductivity limit, assuming the field penetrates uniformly.",
+  "given": {
+    "R": "sphere radius (m)",
+    "sigma": "electrical conductivity (S/m)",
+    "B0": "quadrupole field amplitude (T/m^0, field evaluated at R)",
+    "omega": "angular velocity (rad/s)"
+  },
+  "find": "Total eddy-current power dissipated P as a function of sigma, B0, R, and omega.",
+  "expected": {
+    "kind": "symbolic",
+    "value": "32*pi*sigma*B0**2*R**5*omega**2/315",
+    "unit": "W",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "sympy_equivalence",
+      "script": null
+    }
+  },
+  "contamination": {
+    "checked_at": "2026-06-02T00:00:00Z",
+    "method": "novel-problem-design",
+    "score": 0.05,
+    "verdict": "clean"
+  },
+  "notes": "Derived by expanding the induced EMF in vector spherical harmonics; only the l=2 quadrupole mode couples to the external field and survives the angular integral. The numerical prefactor 32*pi/315 is the hallmark of the l=2 Ohmic dissipation integral over the sphere volume."
+}

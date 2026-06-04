@@ -1,0 +1,34 @@
+{
+  "id": "novel-em-003",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "solvay-novel-2026-06-05",
+    "generated_at": "2026-06-05T00:00:00Z",
+    "seed": null
+  },
+  "domain": "electromagnetism",
+  "subdomain": "synchrotron-radiation",
+  "tags": ["synchrotron", "critical-frequency", "relativistic", "cyclotron", "lorentz-factor"],
+  "difficulty": "hard",
+  "statement": "A relativistic electron with Lorentz factor gamma >> 1 undergoes circular motion in a uniform magnetic field B, emitting synchrotron radiation. The critical angular frequency omega_c above which the spectral power drops exponentially scales as a power of gamma. Determine the scaling exponent p such that omega_c ~ gamma^p * omega_B, where omega_B = eB/(m_e*c) is the non-relativistic cyclotron frequency.",
+  "given": {
+    "gamma": "Lorentz factor of the electron (dimensionless, >> 1)",
+    "omega_B": "non-relativistic cyclotron frequency eB/(m_e*c) (rad/s)",
+    "B": "magnetic field strength (T)",
+    "m_e": "electron rest mass (kg)"
+  },
+  "find": "The scaling exponent p in omega_c = gamma^p * omega_B for the synchrotron critical frequency.",
+  "expected": {
+    "kind": "symbolic",
+    "value": "gamma**3",
+    "unit": null,
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "sympy_equivalence",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "The synchrotron critical frequency arises from two relativistic effects: (1) the relativistic cyclotron frequency is reduced to omega_B/gamma, and (2) the beaming of radiation into a cone of half-angle 1/gamma causes the observer to see pulses compressed by a factor gamma^2 in duration. Combining gives omega_c ~ (omega_B/gamma)*gamma^2 = gamma^2*omega_B in the non-relativistic limit, but the full relativistic treatment including the retarded-time factor yields omega_c = (3/2)*gamma^3*omega_B*sin(alpha), where alpha is the pitch angle, so the exponent p=3."
+}

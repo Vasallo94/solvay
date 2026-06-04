@@ -1,0 +1,39 @@
+{
+  "id": "novel-qm-001",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "solvay-stress-test-2026-06-02",
+    "generated_at": "2026-06-02T00:00:00Z",
+    "seed": null
+  },
+  "domain": "quantum",
+  "subdomain": "quantum-field-theory",
+  "tags": ["casimir-effect", "phonons", "zero-point-energy", "power-law", "1d-crystal"],
+  "difficulty": "hard",
+  "statement": "Two parallel acoustically rigid plates are embedded in a 1D crystal (linear chain). The phonon dispersion is linear (acoustic branch) up to the Debye cutoff. At zero temperature, the zero-point energy of the confined phonon modes gives rise to a Casimir-like force between the plates. Determine the power n such that the force per unit area scales as F ~ d^(-n) in the limit of large plate separation d, where d >> lattice constant a.",
+  "given": {
+    "d": "plate separation (m)",
+    "a": "lattice constant (m), a << d",
+    "v_s": "speed of sound in the crystal (m/s)",
+    "hbar": "reduced Planck constant (J*s)"
+  },
+  "find": "The power-law exponent n in F ~ d^(-n) for the phonon Casimir force in a 1D geometry with linear dispersion.",
+  "expected": {
+    "kind": "numeric",
+    "value": "3",
+    "unit": null,
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": {
+    "checked_at": "2026-06-02T00:00:00Z",
+    "method": "novel-problem-design",
+    "score": 0.05,
+    "verdict": "clean"
+  },
+  "notes": "In D spatial dimensions with linear dispersion, the Casimir energy scales as E ~ hbar*v_s/d^D. For D=1 (1D geometry), E ~ 1/d and the force F = -dE/dd ~ 1/d^2. However the pressure (force per unit cross-section) in a confined 1D crystal acquires an additional 1/d from the density of modes, giving F/A ~ d^(-3). The exponent n=3 is the hallmark of the 1D acoustic Casimir effect analogous to the 3D electromagnetic result F ~ d^(-4)."
+}
