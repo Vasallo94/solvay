@@ -92,9 +92,24 @@ def build_solver_loop_graph(
             return parsed if isinstance(parsed, dict) else {}
         return {}
 
+    _SOLVER_JSON_SUFFIX = (
+        "\n\nRespond with a JSON object containing these fields: "
+        "solver_blocked (bool), blocked_topic (string or null), "
+        "method (string), steps (list of strings), "
+        "final_answer (object with value and unit, or string), "
+        "code_trace (list of strings). "
+        "Return ONLY valid JSON, no markdown fencing."
+    )
+
     def _invoke_structured(runnable: Runnable[Any, Any] | BaseChatModel, prompt: str) -> Any:
         if isinstance(runnable, BaseChatModel):
-            response = runnable.invoke([HumanMessage(content=prompt)])
+            from langchain_core.messages import SystemMessage
+
+            messages: list[Any] = [
+                SystemMessage(content=load_prompt("solver")),
+                HumanMessage(content=prompt + _SOLVER_JSON_SUFFIX),
+            ]
+            response = runnable.invoke(messages)
             content = (
                 response.content if isinstance(response.content, str) else str(response.content)
             )
@@ -306,12 +321,24 @@ def build_solver_loop_graph(
     return builder.compile()
 
 
+def _is_local_model(config: SolvayConfig) -> bool:
+    """Check if the configured model is a local Ollama model."""
+    model = config.model_for("solver")
+    if isinstance(model, str):
+        return model.startswith("ollama:")
+    return False
+
+
 def create_solver_subagent(
     config: SolvayConfig,
     web_search_tool: Any,
     url_fetch_tool: Any,
 ) -> CompiledSubAgent:
     """Create the solver CompiledSubAgent wrapping the loop subgraph.
+
+    For local models (Ollama), the solver uses a raw BaseChatModel without
+    tools to avoid XML tool-call errors. For API models, it uses a full
+    agent with python_exec and check_dimensions.
 
     Args:
         config: Solvay configuration.
@@ -322,15 +349,23 @@ def create_solver_subagent(
     from solvay.config import resolve_model
 
     mkwargs = config.model_kwargs
+    local = _is_local_model(config)
     call_limit = [ModelCallLimitMiddleware(run_limit=25)]
-    solver_model = create_agent(
-        resolve_model(config.model_for("solver"), **mkwargs),
-        system_prompt=load_prompt("solver"),
-        tools=[python_exec, check_dimensions, web_search_tool, url_fetch_tool],
-        response_format=SolverResponse,
-        middleware=call_limit,
-        name="solver",
-    )
+
+    if local:
+        solver_model: Runnable[Any, Any] | BaseChatModel = resolve_model(
+            config.model_for("solver"), **mkwargs
+        )
+    else:
+        solver_model = create_agent(
+            resolve_model(config.model_for("solver"), **mkwargs),
+            system_prompt=load_prompt("solver"),
+            tools=[python_exec, check_dimensions, web_search_tool, url_fetch_tool],
+            response_format=SolverResponse,
+            middleware=call_limit,
+            name="solver",
+        )
+
     verifier_model = create_agent(
         resolve_model(config.model_for("verifier"), **mkwargs),
         system_prompt=load_prompt("verifier"),
