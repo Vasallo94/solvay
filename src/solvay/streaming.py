@@ -176,6 +176,7 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
 
     t0 = time.monotonic()
     final_answer = ""
+    last_dispatched: str | None = None
 
     stream = agent.stream_events(
         {"messages": [{"role": "user", "content": problem}]},
@@ -241,6 +242,7 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
                 name=subagent.name,
                 duration_s=time.monotonic() - subagent_starts.get(subagent.name, t0),
             )
+            last_dispatched = None
 
         elif channel == "messages":
             msg = item
@@ -253,13 +255,16 @@ def parse_stream(agent: Any, problem: str) -> Iterator[StreamEvent]:
                         except (json.JSONDecodeError, ValueError):
                             raw_args = {}
                     if isinstance(raw_args, dict):
-                        yield OrchestratorDispatched(
-                            subagent_type=raw_args.get("subagent_type", "?"),
-                            description_preview=_truncate(
-                                raw_args.get("description", ""), 120
-                            ),
-                            t=time.monotonic(),
-                        )
+                        st = raw_args.get("subagent_type")
+                        if st and st != last_dispatched:
+                            last_dispatched = st
+                            yield OrchestratorDispatched(
+                                subagent_type=st,
+                                description_preview=_truncate(
+                                    raw_args.get("description", ""), 120
+                                ),
+                                t=time.monotonic(),
+                            )
             text = str(msg.text)
             if text and len(text) > 20 and not final_answer:
                 final_answer = text
