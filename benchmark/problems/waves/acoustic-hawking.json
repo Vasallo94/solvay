@@ -21,7 +21,7 @@
   "find": "Hawking temperature T_H of the acoustic black hole.",
   "expected": {
     "kind": "symbolic",
-    "value": "hbar*c_s/(k_B*Q)",
+    "value": "hbar*c_s**2/(k_B*Q)",
     "unit": "K",
     "tolerance_rel": 0.01,
     "verification": {
@@ -35,5 +35,5 @@
     "score": 0.1,
     "verdict": "clean"
   },
-  "notes": "Surface gravity kappa = 2*pi*c_s^2/Q. Hawking temperature T_H = hbar*kappa/(2*pi*k_B*c_s) = hbar*c_s/(k_B*Q). GPT-5.5 solved this correctly on 2026-06-04."
+  "notes": "Sonic horizon r_s = Q/(2*pi*c_s). Surface gravity (acceleration convention, Visser 1998 eq.41): kappa = 2*pi*c_s^3/Q. Hawking temperature T_H = hbar*kappa/(2*pi*k_B*c_s) = hbar*c_s^2/(k_B*Q). Equivalently using frequency convention: kappa_f = kappa/c_s = 2*pi*c_s^2/Q, then T_H = hbar*kappa_f/(2*pi*k_B) = hbar*c_s^2/(k_B*Q)."
 }

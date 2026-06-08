@@ -22,7 +22,7 @@
   "find": "Standoff distance r_s where magnetic pressure equals solar wind dynamic pressure.",
   "expected": {
     "kind": "symbolic",
-    "value": "(mu_0*mu**2/(8*pi**2*n*m_p*v**2))**(1/6)",
+    "value": "(mu_0*mu**2/(16*pi**2*n*m_p*v**2))**(1/6)",
     "unit": "m",
     "tolerance_rel": 0.01,
     "verification": {
@@ -31,5 +31,5 @@
     }
   },
   "contamination": null,
-  "notes": "On the equatorial plane the dipole field is B = mu_0*mu/(4*pi*r^3). Setting B^2/(2*mu_0) = n*m_p*v^2/2 gives (mu_0*mu)^2/(32*pi^2*r^6*mu_0) = n*m_p*v^2/2, which simplifies to r^6 = mu_0*mu^2/(16*pi^2*n*m_p*v^2). Taking the sixth root yields r_s = (mu_0*mu^2/(16*pi^2*n*m_p*v^2))^(1/6). Note: the prefactor 8 vs 16 depends on equatorial vs polar geometry conventions; the sympy_equivalence check will verify the algebraic form."
+  "notes": "On the equatorial plane the dipole field is B = mu_0*mu/(4*pi*r^3). Setting B^2/(2*mu_0) = n*m_p*v^2/2 gives mu_0*mu^2/(32*pi^2*r^6) = n*m_p*v^2/2, hence r^6 = mu_0*mu^2/(16*pi^2*n*m_p*v^2). Taking the sixth root yields r_s = (mu_0*mu^2/(16*pi^2*n*m_p*v^2))^(1/6). The polar convention (B_axis = 2*B_equatorial) gives 4*pi^2 instead of 16*pi^2."
 }

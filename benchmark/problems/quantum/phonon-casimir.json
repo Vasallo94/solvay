@@ -21,7 +21,7 @@
   "find": "The power-law exponent n in F ~ d^(-n) for the phonon Casimir force in a 1D geometry with linear dispersion.",
   "expected": {
     "kind": "numeric",
-    "value": "3",
+    "value": "2",
     "unit": null,
     "tolerance_rel": 0.01,
     "verification": {
@@ -35,5 +35,5 @@
     "score": 0.05,
     "verdict": "clean"
   },
-  "notes": "In D spatial dimensions with linear dispersion, the Casimir energy scales as E ~ hbar*v_s/d^D. For D=1 (1D geometry), E ~ 1/d and the force F = -dE/dd ~ 1/d^2. However the pressure (force per unit cross-section) in a confined 1D crystal acquires an additional 1/d from the density of modes, giving F/A ~ d^(-3). The exponent n=3 is the hallmark of the 1D acoustic Casimir effect analogous to the 3D electromagnetic result F ~ d^(-4)."
+  "notes": "In 1+1D with linear dispersion omega=v_s|k|, rigid walls at separation d quantise modes as k_m=m*pi/d. Zeta-regularised zero-point energy: E_Cas = -pi*hbar*v_s/(24*d). Force F = -dE/dd ~ hbar*v_s/d^2. Dividing by a constant transverse cross-section A does not change the d-dependence, so n=2. This mirrors the general D-dimensional pattern: force per unit transverse area ~ d^{-(D+1)}, giving n=2 for D=1 and n=4 for D=3 (standard EM Casimir)."
 }

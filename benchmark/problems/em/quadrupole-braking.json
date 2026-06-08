@@ -22,7 +22,7 @@
   "find": "Braking torque N as a function of sigma, B0, R, and omega.",
   "expected": {
     "kind": "symbolic",
-    "value": "32*pi*sigma*B0**2*R**5*omega/315",
+    "value": "32*pi*sigma*B_0**2*R**5*omega_0/315",
     "unit": "N*m",
     "tolerance_rel": 0.01,
     "verification": {

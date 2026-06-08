@@ -20,8 +20,8 @@
   },
   "find": "The scaling exponent p in omega_c = gamma^p * omega_B for the synchrotron critical frequency.",
   "expected": {
-    "kind": "symbolic",
-    "value": "gamma**3",
+    "kind": "numeric",
+    "value": "2",
     "unit": null,
     "tolerance_rel": 0.01,
     "verification": {
@@ -30,5 +30,5 @@
     }
   },
   "contamination": null,
-  "notes": "The synchrotron critical frequency arises from two relativistic effects: (1) the relativistic cyclotron frequency is reduced to omega_B/gamma, and (2) the beaming of radiation into a cone of half-angle 1/gamma causes the observer to see pulses compressed by a factor gamma^2 in duration. Combining gives omega_c ~ (omega_B/gamma)*gamma^2 = gamma^2*omega_B in the non-relativistic limit, but the full relativistic treatment including the retarded-time factor yields omega_c = (3/2)*gamma^3*omega_B*sin(alpha), where alpha is the pitch angle, so the exponent p=3."
+  "notes": "The synchrotron critical frequency is omega_c = (3/2)*gamma^3*(c/rho), where rho = gamma*m_e*c/(eB) is the relativistic Larmor radius. Substituting c/rho = eB/(gamma*m_e*c) = omega_B/gamma gives omega_c = (3/2)*gamma^2*omega_B, so p=2. The gamma^3 in the standard formula already contains a hidden 1/gamma from rho; when expressed in terms of the non-relativistic omega_B = eB/(m_e*c), one power cancels."
 }
