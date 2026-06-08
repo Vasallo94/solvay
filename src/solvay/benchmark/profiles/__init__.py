@@ -35,6 +35,25 @@ class Profile:
     cost_estimate: Literal["low", "medium", "high"]
 
 
+def extract_text(content: object) -> str:
+    """Extract plain text from a model response content field.
+
+    Handles both plain strings and Responses API content-block lists
+    (list of dicts with 'type' and 'text' keys).
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(block.get("text", ""))
+            elif isinstance(block, dict) and block.get("text"):
+                parts.append(block["text"])
+        return "\n".join(parts) if parts else str(content)
+    return str(content)
+
+
 PROFILES: dict[str, Profile] = {}
 
 

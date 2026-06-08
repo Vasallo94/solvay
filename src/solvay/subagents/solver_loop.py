@@ -353,8 +353,9 @@ def create_solver_subagent(
     call_limit = [ModelCallLimitMiddleware(run_limit=25)]
 
     if local:
+        local_kwargs = {**mkwargs, "num_predict": 4096}
         solver_model: Runnable[Any, Any] | BaseChatModel = resolve_model(
-            config.model_for("solver"), **mkwargs
+            config.model_for("solver"), **local_kwargs
         )
     else:
         solver_model = create_agent(

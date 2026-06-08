@@ -6,7 +6,7 @@ import time
 
 from solvay.agent import create_solvay_agent
 from solvay.benchmark.config import BenchConfig
-from solvay.benchmark.profiles import Profile, ProfileResult, register
+from solvay.benchmark.profiles import Profile, ProfileResult, extract_text, register
 from solvay.benchmark.schema import Problem
 from solvay.config import SolvayConfig
 from solvay.tools.python_exec import reset_exec_state
@@ -28,7 +28,7 @@ def solvay_full_runner(problem: Problem, model: str, config: BenchConfig) -> Pro
         )
     final = result["messages"][-1]
     return ProfileResult(
-        answer_raw=str(getattr(final, "content", "")),
+        answer_raw=extract_text(getattr(final, "content", "")),
         answer_extracted=None,
         elapsed_seconds=time.monotonic() - t0,
         tokens={"input": 0, "output": 0, "cache_read": 0},

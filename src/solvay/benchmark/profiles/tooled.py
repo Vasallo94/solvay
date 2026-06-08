@@ -8,7 +8,7 @@ from langchain.chat_models import init_chat_model
 from langgraph.prebuilt import create_react_agent
 
 from solvay.benchmark.config import BenchConfig
-from solvay.benchmark.profiles import Profile, ProfileResult, register
+from solvay.benchmark.profiles import Profile, ProfileResult, extract_text, register
 from solvay.benchmark.profiles.system_prompt import PHYSICIST_SYSTEM_PROMPT
 from solvay.benchmark.schema import Problem
 from solvay.tools.dimensional import check_dimensions
@@ -34,7 +34,7 @@ def tooled_runner(problem: Problem, model: str, config: BenchConfig) -> ProfileR
             error=str(exc),
         )
     final = result["messages"][-1]
-    text = str(getattr(final, "content", ""))
+    text = extract_text(getattr(final, "content", ""))
     return ProfileResult(
         answer_raw=text,
         answer_extracted=None,
