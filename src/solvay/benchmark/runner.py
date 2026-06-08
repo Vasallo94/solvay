@@ -29,7 +29,7 @@ def _git_commit() -> tuple[str, bool]:
     try:
         sha = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
         dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], text=True).strip())
-    except OSError, subprocess.CalledProcessError:
+    except (OSError, subprocess.CalledProcessError):
         return "unknown", False
     return sha, dirty
 
@@ -42,12 +42,18 @@ def _solvay_version() -> str:
 
 
 
+@dataclass(frozen=True)
+class MatrixResult:
+    out_path: Path
+    records: list[RunRecord]
+
+
 def run_matrix(
     spec: MatrixSpec,
     out_path: Path,
     config: BenchConfig,
     solvay_config: SolvayConfig | None = None,
-) -> Path:
+) -> MatrixResult:
     """Execute the matrix and stream results to a JSONL file."""
     scfg = solvay_config or SolvayConfig()
     commit, dirty = _git_commit()
@@ -61,6 +67,7 @@ def run_matrix(
         started_at=dt.datetime.now(dt.UTC).isoformat(),
     )
     out_path = Path(out_path)
+    all_records: list[RunRecord] = []
     with RunWriter(out_path, header) as writer:
         for problem in spec.problems:
             for name in spec.profile_names:
@@ -79,20 +86,20 @@ def run_matrix(
                             correct, grading_method = evaluate_correct(
                                 answer_for_eval, problem.expected, problem, config
                             )
-                        writer.write(
-                            RunRecord(
-                                problem_id=problem.id,
-                                profile=name,
-                                model=model,
-                                repeat_idx=repeat_idx,
-                                answer_raw=res.answer_raw,
-                                answer_extracted=res.answer_extracted,
-                                correct=correct,
-                                elapsed_seconds=res.elapsed_seconds,
-                                tokens=res.tokens,
-                                trace_id=res.trace_id,
-                                error=res.error,
-                                grading_method=grading_method,
-                            )
+                        record = RunRecord(
+                            problem_id=problem.id,
+                            profile=name,
+                            model=model,
+                            repeat_idx=repeat_idx,
+                            answer_raw=res.answer_raw,
+                            answer_extracted=res.answer_extracted,
+                            correct=correct,
+                            elapsed_seconds=res.elapsed_seconds,
+                            tokens=res.tokens,
+                            trace_id=res.trace_id,
+                            error=res.error,
+                            grading_method=grading_method,
                         )
-    return out_path
+                        writer.write(record)
+                        all_records.append(record)
+    return MatrixResult(out_path=out_path, records=all_records)

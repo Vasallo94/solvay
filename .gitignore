@@ -37,3 +37,15 @@ credentials.json
 
 # Local benchmark run outputs
 benchmark/runs/
+
+# AFP drafts (local feedback, human-reviewed before submission)
+.afp/
+
+# Generated Solvay reports
+solvay-report-*.qd
+quarkdown-output/
+
+# Local scratch notes
+lab_notebook.md
+harness_notes.md
+memories/

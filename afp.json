@@ -1,0 +1,10 @@
+{
+  "afp_version": "0.2",
+  "subject_uri": "pkg:github/Vasallo94/solvay@0.1.0",
+  "sink": {
+    "type": "draft"
+  },
+  "redaction": "required",
+  "accepts_remote": false,
+  "schema_extensions": []
+}

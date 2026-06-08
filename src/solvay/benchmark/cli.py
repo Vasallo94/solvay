@@ -54,6 +54,10 @@ def run_cmd(
             help="Comma-separated model strings for langchain.chat_models.init_chat_model.",
         ),
     ] = "",
+    grader_model: Annotated[
+        str | None,
+        typer.Option("--grader-model", help="Model for LLM-judge grading fallback (defaults to first --models entry)."),
+    ] = None,
     domain: Annotated[
         str | None,
         typer.Option("--domain", help="Filter problems to this domain (subdirectory)."),
@@ -67,6 +71,10 @@ def run_cmd(
         bool,
         typer.Option("--confirm-cost", help="Confirm running a matrix above the cost threshold."),
     ] = False,
+    feedback: Annotated[
+        bool,
+        typer.Option("--feedback/--no-feedback", help="Run AFP friction detectors after grading."),
+    ] = True,
 ) -> None:
     """Execute the (problems x profiles x models x repeats) matrix."""
     # Import locally so the module tree cost isn't paid on --help.
@@ -93,7 +101,8 @@ def run_cmd(
             raise typer.Exit(2)
 
     model_list = [m.strip() for m in models.split(",") if m.strip()] or [DEFAULT_MODEL]
-    cfg = BenchConfig()
+    effective_grader = grader_model or model_list[0]
+    cfg = BenchConfig(grader_model=effective_grader)
     invocations = len(all_problems) * len(profile_names) * len(model_list) * repeat
     if invocations > cfg.cost_guard_threshold and not confirm_cost:
         typer.echo(
@@ -113,8 +122,19 @@ def run_cmd(
         models=model_list,
         repeats=repeat,
     )
-    path = run_matrix(spec, out_path=out_path, config=cfg)
-    typer.echo(f"Wrote {path}")
+    result = run_matrix(spec, out_path=out_path, config=cfg)
+    typer.echo(f"Wrote {result.out_path}")
+
+    if feedback:
+        try:
+            from solvay.benchmark.feedback import analyze_run, submit_feedback
+
+            problems_map = {p.id: p for p in all_problems}
+            reports = analyze_run(result.records, problems_map)
+            if reports:
+                submit_feedback(reports, project_dir=Path("."))
+        except ImportError:
+            pass
 
 
 from solvay.benchmark.generator.pipeline import generate_batch  # noqa: E402
