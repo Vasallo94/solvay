@@ -43,6 +43,17 @@ class SolutionDraft(BaseModel):
     code_trace: list[str]
 
 
+class SolverReport(BaseModel):
+    """Final report from the conversational solver subagent."""
+
+    solver_blocked: bool = False
+    blocked_topic: str | None = None
+    draft: SolutionDraft | None = None
+    termination_reason: Literal["consensus", "budget_exhausted", "judge_forced"]
+    iterations_consumed: int
+    open_issues: list[str] = Field(default_factory=list)
+
+
 class SolverResponse(BaseModel):
     """Structured solver response: either a draft or a request for more research."""
 

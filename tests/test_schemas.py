@@ -13,6 +13,7 @@ from solvay.schemas import (
     ResearchBrief,
     SolutionDraft,
     SolverLoopState,
+    SolverReport,
     Verdict,
 )
 
@@ -233,3 +234,39 @@ class TestSolverLoopState:
         )
         assert isinstance(state.critique_history[0], CritiqueEntry)
         assert state.critique_history[0].iteration == 0
+
+
+class TestSolverReport:
+    def _draft(self) -> SolutionDraft:
+        return SolutionDraft(
+            method="Newtonian mechanics",
+            steps=["Apply F=ma along incline"],
+            final_answer=Quantity(value=4.9, unit="m/s^2"),
+            code_trace=["9.81*sin(pi/6)"],
+        )
+
+    def test_minimal_consensus_report(self) -> None:
+        report = SolverReport(
+            draft=self._draft(),
+            termination_reason="consensus",
+            iterations_consumed=1,
+        )
+        assert report.solver_blocked is False
+        assert report.blocked_topic is None
+        assert report.open_issues == []
+
+    def test_blocked_report_allows_missing_draft(self) -> None:
+        report = SolverReport(
+            solver_blocked=True,
+            blocked_topic="relativistic corrections",
+            termination_reason="judge_forced",
+            iterations_consumed=1,
+        )
+        assert report.draft is None
+
+    def test_termination_reason_is_constrained(self) -> None:
+        with pytest.raises(ValidationError):
+            SolverReport(
+                termination_reason="gave_up",  # type: ignore[arg-type]
+                iterations_consumed=0,
+            )
