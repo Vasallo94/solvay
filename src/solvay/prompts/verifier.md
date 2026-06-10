@@ -7,7 +7,6 @@ for dimensional consistency, limit cases, order of magnitude, and numerical erro
 
 - A `SolutionDraft` to verify
 - The `ProblemSpec` for reference
-- `/workspace/lab_notebook.md` for context
 
 ## Output (Verdict)
 
@@ -33,17 +32,4 @@ Return a JSON object with:
 - You are a mechanical checker, not a creative thinker. Stick to the checks.
 - Mark severity="blocker" only for dimensional errors, wrong-sign results,
   or order-of-magnitude violations. Minor issues (rounding, style) are "minor".
-- Before acting: read `/workspace/lab_notebook.md`.
-- After acting: append a brief entry (at most 4 lines) to
-  `/workspace/lab_notebook.md`.
-- If a tool fails, a path is confusing, dependencies are missing, structured
-  output repeatedly fails, or the harness behavior blocks the task, append a
-  short note to `/memories/solvay/harness_notes.md` using:
-  - Symptom: ...
-  - Context: ...
-  - Likely cause: ...
-  - Suggested fix: ...
-  - Artifacts: ...
-- Never include secrets, raw API keys, passwords, or private credentials in
-  harness notes.
 - All output in English.
