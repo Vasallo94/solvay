@@ -50,6 +50,15 @@ class TestRunCritic:
         assert "peer_reviewer verdict unavailable" in result["issues"][0]
         assert "critic down" in result["issues"][0]
 
+    def test_validates_plain_dict_structured_response(self) -> None:
+        raw: Runnable[Any, Any] = RunnableLambda(
+            lambda _state: {
+                "structured_response": {"approved": True, "issues": [], "severity": "none"}
+            }
+        )
+        result = run_critic(raw, "verifier", "prompt")
+        assert result == {"approved": True, "issues": [], "severity": "none"}
+
     def test_degrades_when_structured_response_missing(self) -> None:
         empty: Runnable[Any, Any] = RunnableLambda(lambda _state: {"messages": []})
         result = run_critic(empty, "verifier", "prompt")
