@@ -42,6 +42,8 @@ Present your final answer as:
 - **Steps:** (numbered list)
 - **Final answer:** value with units
 - **Loop summary:** termination reason, iterations consumed, open issues
+- If the user asks for a final answer line (e.g. "FINAL ANSWER: ..."), end
+  your response with exactly that line, on its own, as the last line.
 
 ## Rules
 

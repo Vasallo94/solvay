@@ -5,8 +5,12 @@ from __future__ import annotations
 import time
 
 from solvay.agent import create_solvay_agent
+from solvay.benchmark.answer_format import (
+    append_final_answer_instruction,
+    extract_final_answer,
+)
 from solvay.benchmark.config import BenchConfig
-from solvay.benchmark.profiles import Profile, ProfileResult, register
+from solvay.benchmark.profiles import Profile, ProfileResult, aggregate_tokens, register
 from solvay.benchmark.schema import Problem
 from solvay.config import PersistenceConfig, SolvayConfig
 from solvay.tools.python_exec import reset_exec_state
@@ -19,9 +23,10 @@ def solvay_full_runner(problem: Problem, model: str, config: BenchConfig) -> Pro
         persistence=PersistenceConfig(enabled=False),
     )
     agent = create_solvay_agent(scfg)
+    content = append_final_answer_instruction(problem.statement)
     t0 = time.monotonic()
     try:
-        result = agent.invoke({"messages": [{"role": "user", "content": problem.statement}]})
+        result = agent.invoke({"messages": [{"role": "user", "content": content}]})
     except Exception as exc:
         return ProfileResult(
             answer_raw="",
@@ -29,12 +34,13 @@ def solvay_full_runner(problem: Problem, model: str, config: BenchConfig) -> Pro
             elapsed_seconds=time.monotonic() - t0,
             error=str(exc),
         )
-    final = result["messages"][-1]
+    messages = result["messages"]
+    text = str(getattr(messages[-1], "content", ""))
     return ProfileResult(
-        answer_raw=str(getattr(final, "content", "")),
-        answer_extracted=None,
+        answer_raw=text,
+        answer_extracted=extract_final_answer(text),
         elapsed_seconds=time.monotonic() - t0,
-        tokens={"input": 0, "output": 0, "cache_read": 0},
+        tokens=aggregate_tokens(messages),
     )
 
 

@@ -6,20 +6,25 @@ import time
 
 from langchain.chat_models import init_chat_model
 
+from solvay.benchmark.answer_format import (
+    append_final_answer_instruction,
+    extract_final_answer,
+)
 from solvay.benchmark.config import BenchConfig
-from solvay.benchmark.profiles import Profile, ProfileResult, register
+from solvay.benchmark.profiles import Profile, ProfileResult, aggregate_tokens, register
 from solvay.benchmark.profiles.system_prompt import PHYSICIST_SYSTEM_PROMPT
 from solvay.benchmark.schema import Problem
 
 
 def prompted_runner(problem: Problem, model: str, config: BenchConfig) -> ProfileResult:
     chat = init_chat_model(model, temperature=0)
+    content = append_final_answer_instruction(problem.statement)
     t0 = time.monotonic()
     try:
         response = chat.invoke(
             [
                 {"role": "system", "content": PHYSICIST_SYSTEM_PROMPT},
-                {"role": "user", "content": problem.statement},
+                {"role": "user", "content": content},
             ]
         )
     except Exception as exc:
@@ -29,18 +34,12 @@ def prompted_runner(problem: Problem, model: str, config: BenchConfig) -> Profil
             elapsed_seconds=time.monotonic() - t0,
             error=str(exc),
         )
-    text = getattr(response, "content", "")
-    usage = getattr(response, "usage_metadata", {}) or {}
-    tokens = {
-        "input": int(usage.get("input_tokens", 0) or 0),
-        "output": int(usage.get("output_tokens", 0) or 0),
-        "cache_read": int(usage.get("cache_read_input_tokens", 0) or 0),
-    }
+    text = str(getattr(response, "content", ""))
     return ProfileResult(
-        answer_raw=str(text),
-        answer_extracted=None,
+        answer_raw=text,
+        answer_extracted=extract_final_answer(text),
         elapsed_seconds=time.monotonic() - t0,
-        tokens=tokens,
+        tokens=aggregate_tokens([response]),
     )
 
 

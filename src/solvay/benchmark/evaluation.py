@@ -32,7 +32,7 @@ def _units_namespace() -> dict[str, object]:
 def _parse_unit(unit_str: str) -> sympy.Expr | None:
     try:
         parsed = sympy.sympify(unit_str, locals=dict(_units_namespace()))
-    except Exception:  # noqa: BLE001 - any parse failure means "no unit"
+    except Exception:
         return None
     if not isinstance(parsed, sympy.Expr) or parsed.free_symbols:
         return None
@@ -52,7 +52,7 @@ def _unit_conversion_factor(candidate_unit: str, expected_unit: str) -> float | 
         if not ratio.is_number:
             return None
         return float(ratio)
-    except Exception:  # noqa: BLE001 - incompatible dimensions etc.
+    except Exception:
         return None
 
 
@@ -120,7 +120,7 @@ def _evaluate_symbolic(
         expected_expr = sympy.sympify(expected.value)
         candidate_expr = sympy.sympify(candidate_text)
         return bool(sympy.simplify(expected_expr - candidate_expr) == 0)
-    except Exception:  # noqa: BLE001 - unparseable candidate is simply wrong
+    except Exception:
         return False
 
 
