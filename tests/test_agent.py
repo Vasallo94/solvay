@@ -29,6 +29,18 @@ class TestWebSearchTool:
         assert "unavailable" in str(result.get("error", "")).lower()
 
 
+def test_orchestrator_registers_exactly_four_subagents() -> None:
+    from solvay.agent import create_solvay_agent
+
+    with patch("solvay.agent.create_deep_agent") as fake_create:
+        fake_create.return_value = object()
+        create_solvay_agent()
+
+    subagents = fake_create.call_args.kwargs["subagents"]
+    names = [s["name"] for s in subagents]
+    assert names == ["parser", "researcher", "solver", "consolidator"]
+
+
 def test_create_agent_wires_native_memory_backend_and_permissions() -> None:
     from solvay.agent import create_solvay_agent
 

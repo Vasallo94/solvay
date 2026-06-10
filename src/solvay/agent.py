@@ -13,10 +13,8 @@ from solvay.harness import build_backend, build_permissions, memory_paths
 from solvay.subagents import load_prompt
 from solvay.subagents.consolidator import create_consolidator_subagent
 from solvay.subagents.parser import create_parser_subagent
-from solvay.subagents.peer_reviewer import create_peer_reviewer_subagent
 from solvay.subagents.researcher import create_researcher_subagent
-from solvay.subagents.solver_loop import create_solver_subagent
-from solvay.subagents.verifier import create_verifier_subagent
+from solvay.subagents.solver import create_solver_subagent
 from solvay.tools.url_fetch import url_fetch
 
 
@@ -85,8 +83,6 @@ def create_solvay_agent(
     parser = create_parser_subagent(config)
     researcher = create_researcher_subagent(config, web_search, url_fetch)
     solver = create_solver_subagent(config, web_search, url_fetch)
-    verifier = create_verifier_subagent(config)
-    peer_reviewer = create_peer_reviewer_subagent(config, web_search)
     consolidator = create_consolidator_subagent(config)
 
     agent = create_deep_agent(
@@ -99,9 +95,7 @@ def create_solvay_agent(
         subagents=[
             cast(SubAgent, parser),
             cast(SubAgent, researcher),
-            solver,
-            cast(SubAgent, verifier),
-            cast(SubAgent, peer_reviewer),
+            cast(SubAgent, solver),
             cast(SubAgent, consolidator),
         ],
     )

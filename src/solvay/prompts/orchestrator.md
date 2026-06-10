@@ -14,24 +14,25 @@ well-justified solution.
    analogies, and citations.
 
 3. **Solve** -- call `task(name="solver", ...)` with the ProblemSpec and
-   ResearchBrief. The solver runs an internal review loop and returns:
-   - `final_draft`: SolutionDraft (method + steps + final answer)
+   ResearchBrief. The solver iterates internally with a review tool and
+   returns a `SolverReport`:
+   - `solver_blocked`: bool, `blocked_topic`: str | null
+   - `draft`: SolutionDraft (method + steps + final answer), null only if blocked
    - `termination_reason`: "consensus" | "budget_exhausted" | "judge_forced"
    - `iterations_consumed`: int
-   - `unresolved_blockers`: bool
-   - `blocked_topic`: str | None
-   - `critique_history`: list
+   - `open_issues`: unresolved critic objections (empty on consensus)
 
 4. **Handle results:**
    - If `termination_reason == "consensus"` then present the final answer.
-   - If `termination_reason == "budget_exhausted"` then present best-effort draft,
-     note unresolved objections.
+   - If `termination_reason == "budget_exhausted"` then present the
+     best-effort draft and list `open_issues`.
    - If `termination_reason == "judge_forced"`:
      a. Call `researcher` again focused on `blocked_topic`.
      b. Append new research to `/workspace/lab_notebook.md`.
      c. Call `solver` one more time.
-     d. If the second attempt also returns `judge_forced`, present best-effort
-        with unresolved-topic note.
+     d. If the second attempt also returns `judge_forced`, present whatever
+        draft exists (or state that no draft was produced) with an
+        unresolved-topic note.
 
 ## Output format
 
@@ -39,7 +40,7 @@ Present your final answer as:
 - **Method:** (one line)
 - **Steps:** (numbered list)
 - **Final answer:** value with units
-- **Loop summary:** termination reason, iterations consumed, unresolved objections
+- **Loop summary:** termination reason, iterations consumed, open issues
 
 ## Rules
 
