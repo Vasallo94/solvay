@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from langchain_core.messages import HumanMessage
@@ -41,3 +44,69 @@ def run_critic(critic: Runnable[Any, Any], role: str, prompt: str) -> dict[str, 
         issues=[f"{role} verdict unavailable: {last_error}"],
         severity="minor",
     ).model_dump()
+
+
+DIRECTIVE_CONSENSUS = "consensus -- finalize now"
+DIRECTIVE_BUDGET_EXHAUSTED = "budget exhausted -- finalize with best effort"
+DIRECTIVE_ITERATE = "address the issues and request review again"
+
+
+def create_request_review_tool(
+    verifier: Runnable[Any, Any],
+    reviewer: Runnable[Any, Any],
+    max_reviews: int,
+) -> Callable[[str, str], str]:
+    """Create the request_review tool, closing over the critics and budget.
+
+    The review counter lives in this closure: the budget is enforced in code,
+    so the solver cannot exceed it regardless of prompt adherence.
+    """
+    state = {"used": 0}
+
+    def request_review(problem: str, draft: str) -> str:
+        """Submit the current solution draft for independent review.
+
+        Args:
+            problem: Short restatement of the problem being solved.
+            draft: The full current draft: method, numbered steps, final
+                answer with units, and key code snippets.
+
+        Returns:
+            JSON with the verifier and peer_reviewer verdicts, the number of
+            reviews remaining, and a directive telling you whether to
+            finalize or revise and request review again.
+        """
+        if state["used"] >= max_reviews:
+            return json.dumps(
+                {
+                    "directive": DIRECTIVE_BUDGET_EXHAUSTED,
+                    "reviews_remaining": 0,
+                    "verifier": None,
+                    "peer_reviewer": None,
+                }
+            )
+        state["used"] += 1
+        prompt = f"Problem:\n{problem}\n\nSolution draft to review:\n{draft}"
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            verifier_future = pool.submit(run_critic, verifier, "verifier", prompt)
+            reviewer_future = pool.submit(run_critic, reviewer, "peer_reviewer", prompt)
+            verifier_verdict = verifier_future.result()
+            reviewer_verdict = reviewer_future.result()
+
+        remaining = max_reviews - state["used"]
+        if verifier_verdict["approved"] and reviewer_verdict["approved"]:
+            directive = DIRECTIVE_CONSENSUS
+        elif remaining == 0:
+            directive = DIRECTIVE_BUDGET_EXHAUSTED
+        else:
+            directive = DIRECTIVE_ITERATE
+        return json.dumps(
+            {
+                "directive": directive,
+                "reviews_remaining": remaining,
+                "verifier": verifier_verdict,
+                "peer_reviewer": reviewer_verdict,
+            }
+        )
+
+    return request_review
