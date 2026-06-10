@@ -54,17 +54,6 @@ class SolverReport(BaseModel):
     open_issues: list[str] = Field(default_factory=list)
 
 
-class SolverResponse(BaseModel):
-    """Structured solver response: either a draft or a request for more research."""
-
-    solver_blocked: bool = False
-    blocked_topic: str | None = None
-    method: str | None = None
-    steps: list[str] = Field(default_factory=list)
-    final_answer: Quantity | str | None = None
-    code_trace: list[str] = Field(default_factory=list)
-
-
 class Verdict(BaseModel):
     """Verifier or peer-reviewer judgment on a solution draft."""
 
@@ -109,35 +98,3 @@ class JournalEntryList(BaseModel):
     entries: list[JournalEntry] = Field(default_factory=list)
 
 
-class CritiqueEntry(BaseModel):
-    """One iteration of the solver-critique loop: the draft and its verdicts."""
-
-    iteration: int
-    draft: SolutionDraft
-    verifier_verdict: Verdict | None = None
-    reviewer_verdict: Verdict | None = None
-
-
-class SolverLoopState(BaseModel):
-    """State for the solver-critique LangGraph subgraph."""
-
-    # Inputs (set once at entry)
-    problem_spec: ProblemSpec
-    research_brief: ResearchBrief
-
-    # Loop state
-    iteration: int = 0
-    max_iterations: int = 3
-    current_draft: SolutionDraft | None = None
-    verifier_verdict: Verdict | None = None
-    reviewer_verdict: Verdict | None = None
-    critique_history: list[CritiqueEntry] = Field(default_factory=list)
-
-    # Blocking signal
-    solver_blocked: bool = False
-    blocked_topic: str | None = None
-
-    # Output
-    final_draft: SolutionDraft | None = None
-    termination_reason: Literal["consensus", "budget_exhausted", "judge_forced"] | None = None
-    unresolved_blockers: bool = False
