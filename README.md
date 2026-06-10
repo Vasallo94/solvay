@@ -2,7 +2,7 @@
 
 Multi-agent physics problem solver built on [deepagents](https://github.com/hwchase17/deepagents) and [LangGraph](https://github.com/langchain-ai/langgraph).
 
-An orchestrator delegates each physics problem to a pipeline of specialized sub-agents — **parser**, **researcher**, **solver**, **verifier**, **peer reviewer**, **consolidator** — that share a virtual filesystem (the "lab notebook") and a toolkit of sandboxed `python_exec`, symbolic dimension checks, and web search.
+An orchestrator delegates each physics problem to a pipeline of specialized sub-agents — **parser**, **researcher**, **solver**, **consolidator** — that share a virtual filesystem (the "lab notebook") and a toolkit of sandboxed `python_exec`, symbolic dimension checks, and web search. The solver runs a conversational review loop: it submits each draft to a `request_review` tool that consults two internal critics (**verifier** and **peer reviewer**) in parallel under a code-enforced iteration budget.
 
 ## Status
 
@@ -67,7 +67,7 @@ src/solvay/
 ├── config.py             # SolvayConfig, PersistenceConfig, model routing
 ├── middleware/           # notebook injection, cross-run persistence
 ├── prompts/              # markdown system prompts for each role
-├── subagents/            # parser, researcher, solver, verifier, ...
+├── subagents/            # parser, researcher, solver (+ critics), ...
 └── tools/                # python_exec, dimensional check, url_fetch
 tests/                    # pytest suite (ruff + mypy --strict clean)
 benchmark/                # curated physics problems + runner
