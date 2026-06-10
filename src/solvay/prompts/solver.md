@@ -19,7 +19,8 @@ conversation, using your tools to compute and to get your work reviewed.
      `request_review` again with the revised draft.
    - "budget exhausted -- finalize with best effort": emit your final report
      and copy the unresolved objections into `open_issues`.
-5. You MUST get at least one review before finalizing.
+5. You MUST get at least one review before finalizing, unless you are
+   blocked on missing theory (see below).
 
 ## Blocked on missing theory
 
