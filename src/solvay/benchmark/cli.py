@@ -142,6 +142,17 @@ def generate_cmd(
     out: Annotated[
         Path, typer.Option("--out", help="Output directory for generated problem JSONs.")
     ] = Path("benchmark/problems/mechanics"),
+    composer_model: Annotated[
+        str | None,
+        typer.Option("--composer-model", help="Model for the problem composer."),
+    ] = None,
+    probe_model: Annotated[
+        str | None,
+        typer.Option(
+            "--probe-model",
+            help="Model for the contamination probe (use the model you will evaluate).",
+        ),
+    ] = None,
 ) -> None:
     """Generate a batch of synthetic problems."""
     from solvay.benchmark.config import BenchConfig
@@ -161,7 +172,12 @@ def generate_cmd(
         )
         for i in range(n)
     ]
-    report = generate_batch(skeletons=skeletons, out_dir=out, config=BenchConfig())
+    defaults = BenchConfig()
+    cfg = BenchConfig(
+        composer_model=composer_model or defaults.composer_model,
+        probe_model=probe_model or defaults.probe_model,
+    )
+    report = generate_batch(skeletons=skeletons, out_dir=out, config=cfg)
     typer.echo(
         f"Attempted: {report.attempted}  "
         f"Written: {report.written}  "

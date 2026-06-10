@@ -87,3 +87,44 @@ def test_cli_generate_invokes_pipeline(tmp_path: Path, monkeypatch: pytest.Monke
     assert result.exit_code == 0, result.stdout
     assert called["skeleton_count"] == 3
     assert called["out_dir"] == tmp_path
+
+
+def test_cli_generate_model_flags_propagate_to_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from solvay.benchmark.generator.pipeline import GenerationReport
+
+    captured: dict[str, object] = {}
+
+    def fake_generate_batch(
+        skeletons: list[GenerationSkeleton],
+        out_dir: Path,
+        config: BenchConfig,
+    ) -> GenerationReport:
+        captured["config"] = config
+        return GenerationReport(attempted=1, written=1)
+
+    monkeypatch.setattr("solvay.benchmark.cli.generate_batch", fake_generate_batch)
+
+    runner_cli = CliRunner()
+    result = runner_cli.invoke(
+        app,
+        [
+            "generate",
+            "--compose",
+            "incline,friction",
+            "--n",
+            "1",
+            "--out",
+            str(tmp_path),
+            "--composer-model",
+            "ollama:qwen3.5",
+            "--probe-model",
+            "ollama:qwen3.5",
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    config = captured["config"]
+    assert isinstance(config, BenchConfig)
+    assert config.composer_model == "ollama:qwen3.5"
+    assert config.probe_model == "ollama:qwen3.5"
