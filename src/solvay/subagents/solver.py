@@ -11,7 +11,11 @@ from typing import Any
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
-from solvay.schemas import Verdict
+from solvay.config import SolvayConfig
+from solvay.schemas import SolverReport, Verdict
+from solvay.subagents import load_prompt
+from solvay.tools.dimensional import check_dimensions
+from solvay.tools.python_exec import python_exec
 
 
 def run_critic(critic: Runnable[Any, Any], role: str, prompt: str) -> dict[str, Any]:
@@ -113,3 +117,64 @@ def create_request_review_tool(
         )
 
     return request_review
+
+
+def _build_critics(
+    config: SolvayConfig,
+    web_search_tool: Any,
+) -> tuple[Runnable[Any, Any], Runnable[Any, Any]]:
+    """Build the verifier and peer-reviewer critic agents."""
+    from langchain.agents import create_agent
+    from langchain.chat_models import init_chat_model
+
+    verifier: Runnable[Any, Any] = create_agent(
+        init_chat_model(config.model_for("verifier")),
+        system_prompt=load_prompt("verifier"),
+        tools=[python_exec, check_dimensions],
+        response_format=Verdict,
+        name="verifier",
+    )
+    reviewer: Runnable[Any, Any] = create_agent(
+        init_chat_model(config.model_for("peer_reviewer")),
+        system_prompt=load_prompt("peer_reviewer"),
+        tools=[python_exec, web_search_tool],
+        response_format=Verdict,
+        name="peer_reviewer",
+    )
+    return verifier, reviewer
+
+
+def create_solver_subagent(
+    config: SolvayConfig,
+    web_search_tool: Any,
+    url_fetch_tool: Any,
+) -> dict[str, Any]:
+    """Create the conversational solver dict subagent.
+
+    The solver keeps its full message history across review rounds: it sees
+    its own drafts, tool calls, and the critiques returned by request_review.
+    """
+    verifier, reviewer = _build_critics(config, web_search_tool)
+    request_review = create_request_review_tool(
+        verifier=verifier,
+        reviewer=reviewer,
+        max_reviews=config.solver_loop.max_iterations,
+    )
+    return {
+        "name": "solver",
+        "description": (
+            "Solve a physics problem conversationally: compute with python_exec, "
+            "check dimensions, submit drafts via request_review, address the "
+            "critiques, and return a SolverReport."
+        ),
+        "system_prompt": load_prompt("solver"),
+        "model": config.model_for("solver"),
+        "tools": [
+            python_exec,
+            check_dimensions,
+            web_search_tool,
+            url_fetch_tool,
+            request_review,
+        ],
+        "response_format": SolverReport,
+    }

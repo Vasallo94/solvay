@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import threading
 from typing import Any
+from unittest.mock import patch
 
 from langchain_core.runnables import Runnable, RunnableLambda
 
@@ -146,3 +147,36 @@ class TestRequestReview:
         tool = create_request_review_tool(verifier=critic, reviewer=critic, max_reviews=1)
         payload = json.loads(tool("p", "draft v1"))
         assert payload["directive"] == DIRECTIVE_CONSENSUS
+
+
+class TestCreateSolverSubagent:
+    def test_wires_tools_prompt_and_response_format(self) -> None:
+        from solvay.config import SolvayConfig
+        from solvay.schemas import SolverReport
+        from solvay.subagents import solver as solver_module
+
+        def fake_web_search(query: str) -> dict[str, Any]:
+            """Fake web search."""
+            return {"results": []}
+
+        def fake_url_fetch(url: str) -> str:
+            """Fake URL fetch."""
+            return ""
+
+        with patch.object(solver_module, "_build_critics") as fake_build:
+            fake_build.return_value = (_critic(_verdict(True)), _critic(_verdict(True)))
+            subagent = solver_module.create_solver_subagent(
+                SolvayConfig(), fake_web_search, fake_url_fetch
+            )
+
+        assert subagent["name"] == "solver"
+        assert subagent["response_format"] is SolverReport
+        assert "request_review" in subagent["system_prompt"]
+        tool_names = [t.__name__ for t in subagent["tools"]]
+        assert tool_names == [
+            "python_exec",
+            "check_dimensions",
+            "fake_web_search",
+            "fake_url_fetch",
+            "request_review",
+        ]
