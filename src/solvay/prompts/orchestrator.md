@@ -17,6 +17,7 @@ well-justified solution.
    ResearchBrief. The solver iterates internally with a review tool and
    returns a `SolverReport`:
    - `solver_blocked`: bool, `blocked_topic`: str | null
+     (`solver_blocked=true` always accompanies `judge_forced`; ignore it otherwise)
    - `draft`: SolutionDraft (method + steps + final answer), null only if blocked
    - `termination_reason`: "consensus" | "budget_exhausted" | "judge_forced"
    - `iterations_consumed`: int
