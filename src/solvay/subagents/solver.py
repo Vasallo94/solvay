@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -61,6 +62,7 @@ def create_request_review_tool(
     The review counter lives in this closure: the budget is enforced in code,
     so the solver cannot exceed it regardless of prompt adherence.
     """
+    lock = threading.Lock()
     state = {"used": 0}
 
     def request_review(problem: str, draft: str) -> str:
@@ -76,16 +78,17 @@ def create_request_review_tool(
             reviews remaining, and a directive telling you whether to
             finalize or revise and request review again.
         """
-        if state["used"] >= max_reviews:
-            return json.dumps(
-                {
-                    "directive": DIRECTIVE_BUDGET_EXHAUSTED,
-                    "reviews_remaining": 0,
-                    "verifier": None,
-                    "peer_reviewer": None,
-                }
-            )
-        state["used"] += 1
+        with lock:
+            if state["used"] >= max_reviews:
+                return json.dumps(
+                    {
+                        "directive": DIRECTIVE_BUDGET_EXHAUSTED,
+                        "reviews_remaining": 0,
+                        "verifier": None,
+                        "peer_reviewer": None,
+                    }
+                )
+            state["used"] += 1
         prompt = f"Problem:\n{problem}\n\nSolution draft to review:\n{draft}"
         with ThreadPoolExecutor(max_workers=2) as pool:
             verifier_future = pool.submit(run_critic, verifier, "verifier", prompt)

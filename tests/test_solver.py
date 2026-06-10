@@ -98,6 +98,7 @@ class TestRequestReview:
         assert payload["directive"] == DIRECTIVE_ITERATE
         assert payload["reviews_remaining"] == 2
         assert payload["verifier"]["issues"] == ["Issue found"]
+        assert payload["peer_reviewer"]["approved"] is True
 
     def test_budget_exhausted_directive_on_last_rejected_review(self) -> None:
         tool = create_request_review_tool(
@@ -133,6 +134,8 @@ class TestRequestReview:
         # Both critics block on a 2-party barrier. If they ran sequentially,
         # the barrier would time out, both verdicts would degrade, and the
         # consensus assertion below would fail.
+        # timeout=5: on timeout run_critic degrades to approved=False, which
+        # breaks consensus and fails the assertion clearly rather than hanging.
         barrier = threading.Barrier(2, timeout=5)
 
         def synced_critic(_state: Any) -> dict[str, Any]:
