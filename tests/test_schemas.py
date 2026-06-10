@@ -254,6 +254,8 @@ class TestSolverReport:
         assert report.solver_blocked is False
         assert report.blocked_topic is None
         assert report.open_issues == []
+        assert report.termination_reason == "consensus"
+        assert report.iterations_consumed == 1
 
     def test_blocked_report_allows_missing_draft(self) -> None:
         report = SolverReport(
@@ -263,10 +265,12 @@ class TestSolverReport:
             iterations_consumed=1,
         )
         assert report.draft is None
+        assert report.solver_blocked is True
+        assert report.blocked_topic == "relativistic corrections"
 
     def test_termination_reason_is_constrained(self) -> None:
         with pytest.raises(ValidationError):
             SolverReport(
-                termination_reason="gave_up",  # type: ignore[arg-type]
-                iterations_consumed=0,
+                termination_reason="gave_up",
+                iterations_consumed=1,
             )
