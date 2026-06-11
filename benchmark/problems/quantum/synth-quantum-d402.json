@@ -1,0 +1,34 @@
+{
+  "id": "synth-quantum-d402",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "quantum",
+  "subdomain": "matter-waves",
+  "tags": [
+    "de-broglie",
+    "accelerated-electron"
+  ],
+  "difficulty": "easy",
+  "statement": "An electron is accelerated from rest through a potential difference of 240 V (non-relativistic). Use h = 6.626e-34 J s, m_e = 9.109e-31 kg and e = 1.602e-19 C. Find its de Broglie wavelength.",
+  "given": {
+    "V": "240 V"
+  },
+  "find": "De Broglie wavelength of the electron.",
+  "expected": {
+    "kind": "numeric",
+    "value": "7.917e-11",
+    "unit": "m",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "lambda = h / sqrt(2 m e V)."
+}

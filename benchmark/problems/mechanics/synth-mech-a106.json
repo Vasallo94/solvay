@@ -1,0 +1,36 @@
+{
+  "id": "synth-mech-a106",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "waves",
+  "tags": [
+    "standing-waves",
+    "string"
+  ],
+  "difficulty": "easy",
+  "statement": "A string of length 0.85 m and total mass 6.2 g is fixed at both ends. Its third harmonic has a frequency of 270 Hz. Find the tension in the string.",
+  "given": {
+    "L": "0.85 m",
+    "m_string": "6.2 g",
+    "f3": "270 Hz"
+  },
+  "find": "Tension in the string.",
+  "expected": {
+    "kind": "numeric",
+    "value": "170.7",
+    "unit": "N",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "f_n = n v / 2L, v = sqrt(T/mu); T = (2 L f3 / 3)^2 * (m/L). mu = 0.007294 kg/m."
+}

@@ -1,0 +1,35 @@
+{
+  "id": "synth-mech-a105",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "oscillations",
+  "tags": [
+    "damping",
+    "exponential-decay"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A 0.42 kg mass oscillates on a spring while subject to a linear drag force F = -b v with b = 0.085 kg/s. The damping is weak. After how much time has the oscillation amplitude fallen to one half of its initial value?",
+  "given": {
+    "m": "0.42 kg",
+    "b": "0.085 kg/s"
+  },
+  "find": "Time for the amplitude to halve.",
+  "expected": {
+    "kind": "numeric",
+    "value": "6.85",
+    "unit": "s",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "A(t) = A0 exp(-b t / 2m); t_half = 2 m ln(2) / b."
+}
