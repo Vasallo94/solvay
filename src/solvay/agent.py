@@ -16,7 +16,7 @@ from solvay.subagents.consolidator import create_consolidator_subagent
 from solvay.subagents.parser import create_parser_subagent
 from solvay.subagents.peer_reviewer import create_peer_reviewer_subagent
 from solvay.subagents.researcher import create_researcher_subagent
-from solvay.subagents.solver_loop import create_solver_subagent
+from solvay.subagents.solver import create_solver_subagent
 from solvay.subagents.verifier import create_verifier_subagent
 from solvay.tools.url_fetch import url_fetch
 

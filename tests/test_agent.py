@@ -78,3 +78,10 @@ def test_no_auto_general_purpose_subagent() -> None:
     assert "general-purpose" in names, (
         f"'general-purpose' subagent not found in subagents list: {names}"
     )
+
+
+def test_solver_wired_from_conversational_module() -> None:
+    # The solver factory must come from the conversational module, not solver_loop.
+    import solvay.agent as agent_module
+
+    assert agent_module.create_solver_subagent.__module__ == "solvay.subagents.solver"

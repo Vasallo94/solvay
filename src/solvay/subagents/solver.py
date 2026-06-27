@@ -8,6 +8,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from deepagents import CompiledSubAgent
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 
@@ -204,12 +205,16 @@ def create_solver_subagent(
     config: SolvayConfig,
     web_search_tool: Any,
     url_fetch_tool: Any,
-) -> dict[str, Any]:
-    """Create the conversational solver as a drop-in subagent dict.
+) -> CompiledSubAgent:
+    """Create the conversational solver as a drop-in subagent.
 
     The returned runnable invokes the conversational agent and normalizes its
     output to the JSON payload the orchestrator's Step 4 already reads
     (``final_draft`` + ``termination_reason`` + ``iterations_consumed`` ...).
+
+    Returns a ``CompiledSubAgent`` so deepagents accepts it in the subagents
+    list; subscripting (``sub["name"]``, ``sub["runnable"]``) still works
+    because ``CompiledSubAgent`` is a TypedDict-like mapping.
     """
     solver_agent, state = _build_solver_components(config, web_search_tool, url_fetch_tool)
 
@@ -229,12 +234,12 @@ def create_solver_subagent(
         }
         return {"messages": [AIMessage(content=json.dumps(payload, default=str))]}
 
-    return {
-        "name": "solver",
-        "description": (
+    return CompiledSubAgent(
+        name="solver",
+        description=(
             "Solve a physics problem through a conversational solve-review loop. "
             "Accepts ProblemSpec and ResearchBrief, returns a draft with "
             "termination reason and open issues."
         ),
-        "runnable": RunnableLambda(_run),
-    }
+        runnable=RunnableLambda(_run),
+    )
