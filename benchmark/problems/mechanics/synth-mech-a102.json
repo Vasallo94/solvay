@@ -1,0 +1,37 @@
+{
+  "id": "synth-mech-a102",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "oscillations",
+  "tags": [
+    "pendulum",
+    "non-inertial-frame",
+    "small-oscillations"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A simple pendulum of length L hangs from the ceiling of a truck that moves horizontally with constant acceleration a. Gravity is g. Find the angular frequency of small oscillations about the equilibrium direction, expressed in terms of L, g and a.",
+  "given": {
+    "L": "pendulum length (symbol)",
+    "g": "gravity (symbol)",
+    "a": "acceleration (symbol)"
+  },
+  "find": "Angular frequency of small oscillations.",
+  "expected": {
+    "kind": "symbolic",
+    "value": "sqrt(sqrt(g*g + a*a)/L)",
+    "unit": "rad/s",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "sympy_equivalence",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "Effective gravity g_eff = sqrt(g^2+a^2); omega = sqrt(g_eff/L)."
+}

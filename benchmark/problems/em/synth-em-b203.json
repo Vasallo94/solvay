@@ -1,0 +1,35 @@
+{
+  "id": "synth-em-b203",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "em",
+  "subdomain": "magnetostatics",
+  "tags": [
+    "cyclotron",
+    "lorentz-force"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A proton with kinetic energy 85 keV moves perpendicular to a uniform magnetic field of 0.65 T. Use m_p = 1.673e-27 kg and e = 1.602e-19 C. Find the radius of its circular orbit.",
+  "given": {
+    "K": "85 keV",
+    "B": "0.65 T"
+  },
+  "find": "Radius of the circular orbit.",
+  "expected": {
+    "kind": "numeric",
+    "value": "0.06482",
+    "unit": "m",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "r = sqrt(2 m K) / (q B). p = 6.75e-21 kg m/s."
+}

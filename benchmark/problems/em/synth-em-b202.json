@@ -1,0 +1,35 @@
+{
+  "id": "synth-em-b202",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "em",
+  "subdomain": "circuits",
+  "tags": [
+    "rc-circuit",
+    "transient"
+  ],
+  "difficulty": "easy",
+  "statement": "An initially uncharged 4.7 microfarad capacitor is charged through an 18 kiloohm resistor by an ideal battery. How long after the switch closes does the capacitor voltage reach 80 percent of the battery voltage?",
+  "given": {
+    "R": "18 kOhm",
+    "C": "4.7 uF"
+  },
+  "find": "Time to reach 80% of the final voltage.",
+  "expected": {
+    "kind": "numeric",
+    "value": "0.1362",
+    "unit": "s",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "V(t) = V0 (1 - exp(-t/RC)); t = RC ln(5). RC = 0.084600 s."
+}
