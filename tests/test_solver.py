@@ -157,6 +157,13 @@ class TestExtractReport:
         assert "4.9 m/s^2" in out.draft.final_answer
         assert any("no_review" in i or "did not request review" in i for i in out.open_issues)
 
+    def test_malformed_structured_response_falls_back_to_no_review(self) -> None:
+        from solvay.subagents.solver import extract_report
+
+        result = {"structured_response": {"bad": "dict"}}
+        out = extract_report(result, used=1)
+        assert out.termination_reason == "no_review"
+
 
 class TestSolverPayload:
     def test_wrapper_emits_orchestrator_payload(self) -> None:
@@ -195,3 +202,17 @@ class TestSolverPayload:
             sub = solver_mod.create_solver_subagent(SolvayConfig(), lambda q: {}, lambda u: "")
         assert sub["name"] == "solver"
         assert "runnable" in sub
+
+    def test_wrapper_degrades_when_agent_raises(self) -> None:
+        import json
+
+        from solvay.config import SolvayConfig
+        from solvay.subagents import solver as solver_mod
+
+        fake_agent = RunnableLambda(lambda _s: (_ for _ in ()).throw(RuntimeError("boom")))
+        with patch.object(
+            solver_mod, "_build_solver_components", return_value=(fake_agent, {"used": 0})
+        ):
+            sub = solver_mod.create_solver_subagent(SolvayConfig(), lambda q: {}, lambda u: "")
+        payload = json.loads(sub["runnable"].invoke({"messages": []})["messages"][-1].content)
+        assert payload["termination_reason"] == "no_review"

@@ -123,22 +123,24 @@ def _build_solver_components(
 ) -> tuple[Runnable[Any, Any], dict[str, int]]:
     """Build the conversational solver agent and expose the review counter.
 
-    Inherits main's local-model handling: models are resolved with
-    ``config.model_kwargs`` (e.g. ``num_predict`` for Ollama) and every agent
-    is bounded by ``ModelCallLimitMiddleware``.
+    Unlike the graph-based solver (``solver_loop.py``), this agent uses tools
+    and structured output for ALL models, including local ones; degradation on
+    Ollama is handled by ``extract_report``'s no_review fallback and ``_run``'s
+    invoke guard rather than by stripping tools. Models are resolved with
+    ``config.model_kwargs`` (e.g. ``num_predict`` for Ollama) and each agent gets
+    its own ``ModelCallLimitMiddleware`` so the call budgets are not shared.
     """
     from langchain.agents import create_agent
     from langchain.agents.middleware import ModelCallLimitMiddleware
 
     mkwargs = config.model_kwargs
-    call_limit = [ModelCallLimitMiddleware(run_limit=25)]
 
     verifier = create_agent(
         resolve_model(config.model_for("verifier"), **mkwargs),
         system_prompt=load_prompt("verifier"),
         tools=[python_exec, check_dimensions],
         response_format=Verdict,
-        middleware=call_limit,
+        middleware=[ModelCallLimitMiddleware(run_limit=25)],
         name="verifier",
     )
     reviewer = create_agent(
@@ -146,7 +148,7 @@ def _build_solver_components(
         system_prompt=load_prompt("peer_reviewer"),
         tools=[python_exec, web_search_tool, physics_checklist],
         response_format=Verdict,
-        middleware=call_limit,
+        middleware=[ModelCallLimitMiddleware(run_limit=25)],
         name="peer_reviewer",
     )
     request_review, state = create_request_review_tool(
@@ -157,7 +159,7 @@ def _build_solver_components(
         system_prompt=load_prompt("solver"),
         tools=[python_exec, check_dimensions, web_search_tool, url_fetch_tool, request_review],
         response_format=SolverReport,
-        middleware=call_limit,
+        middleware=[ModelCallLimitMiddleware(run_limit=25)],
         name="solver",
     )
     return solver_agent, state
@@ -172,12 +174,15 @@ def extract_report(result: Any, used: int) -> SolverReport:
     """
     structured = result.get("structured_response") if isinstance(result, dict) else None
     if structured is not None:
-        report = (
-            structured
-            if isinstance(structured, SolverReport)
-            else SolverReport.model_validate(structured)
-        )
-        return report.model_copy(update={"iterations_consumed": used})
+        try:
+            report = (
+                structured
+                if isinstance(structured, SolverReport)
+                else SolverReport.model_validate(structured)
+            )
+            return report.model_copy(update={"iterations_consumed": used})
+        except Exception:  # malformed structured output -> fall through to no_review
+            pass
     text = ""
     if isinstance(result, dict) and result.get("messages"):
         text = str(getattr(result["messages"][-1], "content", ""))
@@ -209,7 +214,10 @@ def create_solver_subagent(
     solver_agent, state = _build_solver_components(config, web_search_tool, url_fetch_tool)
 
     def _run(inputs: dict[str, Any]) -> dict[str, Any]:
-        result = solver_agent.invoke(inputs)
+        try:
+            result = solver_agent.invoke(inputs)
+        except Exception as exc:  # degrade to no_review rather than crash the orchestrator
+            result = {"messages": [AIMessage(content=f"solver invocation failed: {exc}")]}
         report = extract_report(result, used=state["used"])
         payload = {
             "final_draft": report.draft.model_dump() if report.draft else None,
