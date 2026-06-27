@@ -8,10 +8,15 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from langchain_core.messages import HumanMessage
-from langchain_core.runnables import Runnable
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import Runnable, RunnableLambda
 
-from solvay.schemas import Verdict
+from solvay.config import SolvayConfig, resolve_model
+from solvay.schemas import SolutionDraft, SolverReport, Verdict
+from solvay.subagents import load_prompt
+from solvay.tools.dimensional import check_dimensions
+from solvay.tools.physics_checklist import physics_checklist
+from solvay.tools.python_exec import python_exec
 
 DIRECTIVE_CONSENSUS = "consensus -- finalize now"
 DIRECTIVE_BUDGET_EXHAUSTED = "budget exhausted -- finalize with best effort"
@@ -109,3 +114,119 @@ def create_request_review_tool(
         )
 
     return request_review, state
+
+
+def _build_solver_components(
+    config: SolvayConfig,
+    web_search_tool: Any,
+    url_fetch_tool: Any,
+) -> tuple[Runnable[Any, Any], dict[str, int]]:
+    """Build the conversational solver agent and expose the review counter.
+
+    Inherits main's local-model handling: models are resolved with
+    ``config.model_kwargs`` (e.g. ``num_predict`` for Ollama) and every agent
+    is bounded by ``ModelCallLimitMiddleware``.
+    """
+    from langchain.agents import create_agent
+    from langchain.agents.middleware import ModelCallLimitMiddleware
+
+    mkwargs = config.model_kwargs
+    call_limit = [ModelCallLimitMiddleware(run_limit=25)]
+
+    verifier = create_agent(
+        resolve_model(config.model_for("verifier"), **mkwargs),
+        system_prompt=load_prompt("verifier"),
+        tools=[python_exec, check_dimensions],
+        response_format=Verdict,
+        middleware=call_limit,
+        name="verifier",
+    )
+    reviewer = create_agent(
+        resolve_model(config.model_for("peer_reviewer"), **mkwargs),
+        system_prompt=load_prompt("peer_reviewer"),
+        tools=[python_exec, web_search_tool, physics_checklist],
+        response_format=Verdict,
+        middleware=call_limit,
+        name="peer_reviewer",
+    )
+    request_review, state = create_request_review_tool(
+        verifier, reviewer, config.solver_loop.max_iterations
+    )
+    solver_agent = create_agent(
+        resolve_model(config.model_for("solver"), **mkwargs),
+        system_prompt=load_prompt("solver"),
+        tools=[python_exec, check_dimensions, web_search_tool, url_fetch_tool, request_review],
+        response_format=SolverReport,
+        middleware=call_limit,
+        name="solver",
+    )
+    return solver_agent, state
+
+
+def extract_report(result: Any, used: int) -> SolverReport:
+    """Extract a SolverReport from a conversational agent result, best-effort.
+
+    Prefers the structured response. Falls back (common on local models that
+    do not emit structured output) to a no_review report built from the last
+    message text, so the solver never hangs and the missing review is visible.
+    """
+    structured = result.get("structured_response") if isinstance(result, dict) else None
+    if structured is not None:
+        report = (
+            structured
+            if isinstance(structured, SolverReport)
+            else SolverReport.model_validate(structured)
+        )
+        return report.model_copy(update={"iterations_consumed": used})
+    text = ""
+    if isinstance(result, dict) and result.get("messages"):
+        text = str(getattr(result["messages"][-1], "content", ""))
+    draft = SolutionDraft(
+        method="(unstructured)",
+        steps=[text] if text else [],
+        final_answer=text,
+        code_trace=[],
+    )
+    return SolverReport(
+        draft=draft,
+        termination_reason="no_review",
+        iterations_consumed=used,
+        open_issues=["solver did not request review (no_review fallback)"],
+    )
+
+
+def create_solver_subagent(
+    config: SolvayConfig,
+    web_search_tool: Any,
+    url_fetch_tool: Any,
+) -> dict[str, Any]:
+    """Create the conversational solver as a drop-in subagent dict.
+
+    The returned runnable invokes the conversational agent and normalizes its
+    output to the JSON payload the orchestrator's Step 4 already reads
+    (``final_draft`` + ``termination_reason`` + ``iterations_consumed`` ...).
+    """
+    solver_agent, state = _build_solver_components(config, web_search_tool, url_fetch_tool)
+
+    def _run(inputs: dict[str, Any]) -> dict[str, Any]:
+        result = solver_agent.invoke(inputs)
+        report = extract_report(result, used=state["used"])
+        payload = {
+            "final_draft": report.draft.model_dump() if report.draft else None,
+            "termination_reason": report.termination_reason,
+            "iterations_consumed": report.iterations_consumed,
+            "open_issues": report.open_issues,
+            "solver_blocked": report.solver_blocked,
+            "blocked_topic": report.blocked_topic,
+        }
+        return {"messages": [AIMessage(content=json.dumps(payload, default=str))]}
+
+    return {
+        "name": "solver",
+        "description": (
+            "Solve a physics problem through a conversational solve-review loop. "
+            "Accepts ProblemSpec and ResearchBrief, returns a draft with "
+            "termination reason and open issues."
+        ),
+        "runnable": RunnableLambda(_run),
+    }

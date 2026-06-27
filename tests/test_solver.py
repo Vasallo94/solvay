@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import threading
 from typing import Any
+from unittest.mock import patch
 
+from langchain_core.messages import AIMessage
 from langchain_core.runnables import Runnable, RunnableLambda
 
 from solvay.schemas import Verdict
@@ -130,3 +132,66 @@ class TestRequestReview:
         c = RunnableLambda(synced)
         tool, _state = create_request_review_tool(c, c, 1)
         assert json.loads(tool("p", "d"))["directive"] == DIRECTIVE_CONSENSUS
+
+
+class TestExtractReport:
+    def test_prefers_structured_response(self) -> None:
+        from solvay.schemas import SolutionDraft, SolverReport
+        from solvay.subagents.solver import extract_report
+
+        draft = SolutionDraft(method="m", steps=["s"], final_answer="g*sin(theta)", code_trace=[])
+        report = SolverReport(draft=draft, termination_reason="consensus", iterations_consumed=2)
+        result = {"structured_response": report, "messages": [AIMessage(content="ignored")]}
+        out = extract_report(result, used=2)
+        assert out.termination_reason == "consensus"
+        assert out.iterations_consumed == 2
+
+    def test_no_structured_response_falls_back_to_no_review(self) -> None:
+        from solvay.subagents.solver import extract_report
+
+        result = {"messages": [AIMessage(content="The acceleration is 4.9 m/s^2")]}
+        out = extract_report(result, used=0)
+        assert out.termination_reason == "no_review"
+        assert out.iterations_consumed == 0
+        assert out.draft is not None
+        assert "4.9 m/s^2" in out.draft.final_answer
+        assert any("no_review" in i or "did not request review" in i for i in out.open_issues)
+
+
+class TestSolverPayload:
+    def test_wrapper_emits_orchestrator_payload(self) -> None:
+        import json
+
+        from solvay.config import SolvayConfig
+        from solvay.schemas import SolutionDraft, SolverReport
+        from solvay.subagents import solver as solver_mod
+
+        draft = SolutionDraft(
+            method="Newton",
+            steps=["a=g sin"],
+            final_answer="4.9 m/s^2",
+            code_trace=[],
+        )
+        report = SolverReport(draft=draft, termination_reason="consensus", iterations_consumed=1)
+        fake_agent = RunnableLambda(lambda _s: {"structured_response": report})
+
+        with patch.object(
+            solver_mod, "_build_solver_components", return_value=(fake_agent, {"used": 1})
+        ):
+            sub = solver_mod.create_solver_subagent(SolvayConfig(), lambda q: {}, lambda u: "")
+        payload = json.loads(sub["runnable"].invoke({"messages": []})["messages"][-1].content)
+        assert payload["termination_reason"] == "consensus"
+        assert payload["iterations_consumed"] == 1
+        assert payload["final_draft"]["method"] == "Newton"
+
+    def test_factory_returns_dict_named_solver(self) -> None:
+        from solvay.config import SolvayConfig
+        from solvay.subagents import solver as solver_mod
+
+        fake_agent = RunnableLambda(lambda _s: {"messages": [AIMessage(content="x")]})
+        with patch.object(
+            solver_mod, "_build_solver_components", return_value=(fake_agent, {"used": 0})
+        ):
+            sub = solver_mod.create_solver_subagent(SolvayConfig(), lambda q: {}, lambda u: "")
+        assert sub["name"] == "solver"
+        assert "runnable" in sub
