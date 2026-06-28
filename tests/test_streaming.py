@@ -10,7 +10,6 @@ from solvay.streaming import (
     SubagentFinished,
     SubagentStarted,
     ToolCallMade,
-    ToolCallRecord,
     ToolResultReceived,
 )
 
@@ -35,13 +34,19 @@ class TestRunCollector:
     def test_tool_result_not_stored(self) -> None:
         c = self._collector()
         c.accumulate(SubagentStarted(name="parser", t=0.0))
-        c.accumulate(ToolResultReceived(subagent="parser", tool="python_exec", result_preview="h=10"))
+        c.accumulate(
+            ToolResultReceived(subagent="parser", tool="python_exec", result_preview="h=10")
+        )
         assert c.subagent_runs[0].tool_calls == []
 
     def test_schema_stored_in_current_subagent(self) -> None:
         c = self._collector()
         c.accumulate(SubagentStarted(name="parser", t=0.0))
-        c.accumulate(SchemaProduced(subagent="parser", schema_type="ProblemSpec", data={"domain": "mechanics"}))
+        c.accumulate(
+            SchemaProduced(
+                subagent="parser", schema_type="ProblemSpec", data={"domain": "mechanics"}
+            )
+        )
         assert len(c.subagent_runs[0].schemas) == 1
         assert c.subagent_runs[0].schemas[0][0] == "ProblemSpec"
 
@@ -81,8 +86,9 @@ class TestRunCollector:
 # Fake stream objects for parse_stream tests
 # ---------------------------------------------------------------------------
 
-from dataclasses import dataclass as _dc, field as _field
-from typing import Any as _Any
+from dataclasses import dataclass as _dc  # noqa: E402
+from dataclasses import field as _field  # noqa: E402
+from typing import Any as _Any  # noqa: E402
 
 
 @_dc
@@ -160,7 +166,9 @@ class TestParseStream:
         assert started.name == "parser"
 
     def test_tool_call_made_and_result_emitted(self) -> None:
-        tc = _FakeToolCall(tool_name="python_exec", input={"code": "x=1"}, output='{"stdout": "1"}')
+        tc = _FakeToolCall(
+            tool_name="python_exec", input={"code": "x=1"}, output='{"stdout": "1"}'
+        )
         stream = _FakeStream(subagents=[_FakeSubagent(name="solver", tool_calls=[tc])])
         agent = self._make_agent(stream)
         events = list(parse_stream(agent, "test"))
@@ -172,7 +180,10 @@ class TestParseStream:
         assert results[0].tool == "python_exec"
 
     def test_schema_produced_when_output_matches_known_schema(self) -> None:
-        output = '{"principles": ["F=ma"], "candidate_equations": ["F=ma"], "analogies": [], "citations": []}'
+        output = (
+            '{"principles": ["F=ma"], "candidate_equations": ["F=ma"],'
+            ' "analogies": [], "citations": []}'
+        )
         tc = _FakeToolCall(tool_name="web_search", input="query", output=output)
         stream = _FakeStream(subagents=[_FakeSubagent(name="researcher", tool_calls=[tc])])
         agent = self._make_agent(stream)
@@ -213,10 +224,12 @@ class TestOrchestratorDispatched:
     def test_orchestrator_dispatch_captured_from_messages(self) -> None:
         msg = _FakeMsgWithToolCalls(
             text="",
-            tool_calls=[{
-                "name": "task",
-                "args": {"subagent_type": "parser", "description": "A ball drops from 10m"},
-            }],
+            tool_calls=[
+                {
+                    "name": "task",
+                    "args": {"subagent_type": "parser", "description": "A ball drops from 10m"},
+                }
+            ],
         )
         stream = _FakeStream(
             subagents=[_FakeSubagent(name="parser")],
@@ -232,10 +245,12 @@ class TestOrchestratorDispatched:
         long_desc = "x" * 200
         msg = _FakeMsgWithToolCalls(
             text="",
-            tool_calls=[{
-                "name": "task",
-                "args": {"subagent_type": "solver", "description": long_desc},
-            }],
+            tool_calls=[
+                {
+                    "name": "task",
+                    "args": {"subagent_type": "solver", "description": long_desc},
+                }
+            ],
         )
         stream = _FakeStream(messages=[msg])
         agent = self._make_agent(stream)
@@ -259,8 +274,12 @@ class TestOrchestratorDispatched:
 class TestRunCollectorOrchestratorDispatched:
     def test_accumulate_orchestrator_dispatched(self) -> None:
         c = RunCollector(problem="test", model="test-model")
-        c.accumulate(OrchestratorDispatched(subagent_type="parser", description_preview="test", t=0.0))
-        c.accumulate(OrchestratorDispatched(subagent_type="solver", description_preview="test", t=1.0))
+        c.accumulate(
+            OrchestratorDispatched(subagent_type="parser", description_preview="test", t=0.0)
+        )
+        c.accumulate(
+            OrchestratorDispatched(subagent_type="solver", description_preview="test", t=1.0)
+        )
         assert len(c.orchestrator_dispatches) == 2
         assert c.orchestrator_dispatches[0].subagent_type == "parser"
         assert c.orchestrator_dispatches[1].subagent_type == "solver"

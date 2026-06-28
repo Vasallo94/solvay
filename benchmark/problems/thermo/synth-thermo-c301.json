@@ -1,0 +1,36 @@
+{
+  "id": "synth-thermo-c301",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "thermo",
+  "subdomain": "ideal-gas-processes",
+  "tags": [
+    "adiabatic",
+    "diatomic"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A diatomic ideal gas (gamma = 1.4) at 294 K is compressed adiabatically and reversibly to one 6.3th of its initial volume (V2 = V1/6.3). Find the final temperature.",
+  "given": {
+    "T1": "294 K",
+    "compression_ratio": "6.3",
+    "gamma": "1.4"
+  },
+  "find": "Final temperature after compression.",
+  "expected": {
+    "kind": "numeric",
+    "value": "613.9",
+    "unit": "K",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "T V^(gamma-1) = const; T2 = T1 * ratio^(gamma-1)."
+}

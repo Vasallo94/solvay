@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import re
+from typing import Any
 
 from solvay.streaming import RunCollector, SubagentRun
 
@@ -25,6 +26,10 @@ def generate_quarkdown(collector: RunCollector) -> str:
     duration_str = _fmt_duration(collector.total_s)
     title = _title_from_problem(collector.problem)
 
+    meta_line = (
+        f"**Domain:** {domain} | **Model:** {collector.model}"
+        f" | **Date:** {date_str} | **Duration:** {duration_str}"
+    )
     parts.append(
         f""".docname {{Solvay Solution Report}}
 .doctype {{plain}}
@@ -35,7 +40,7 @@ def generate_quarkdown(collector: RunCollector) -> str:
 
 # {title}
 
-**Domain:** {domain} | **Model:** {collector.model} | **Date:** {date_str} | **Duration:** {duration_str}
+{meta_line}
 
 ---
 
@@ -55,7 +60,11 @@ def generate_quarkdown(collector: RunCollector) -> str:
 
     # Final answer — written by consolidator in Quarkdown format
     parts.append("## Final Answer\n\n")
-    parts.append(_fix_quarkdown_math(collector.final_answer) if collector.final_answer else "*No answer recorded.*")
+    parts.append(
+        _fix_quarkdown_math(collector.final_answer)
+        if collector.final_answer
+        else "*No answer recorded.*"
+    )
     parts.append("\n\n---\n\n")
 
     # Run metadata
@@ -95,7 +104,7 @@ def _render_subagent_section(run: SubagentRun) -> str:
     return "".join(lines)
 
 
-def _render_problem_spec(data: dict) -> str:
+def _render_problem_spec(data: dict[str, Any]) -> str:
     domain = data.get("domain", "unknown")
     knowns = data.get("knowns", {})
     unknowns = data.get("unknowns", [])
@@ -103,7 +112,11 @@ def _render_problem_spec(data: dict) -> str:
 
     knowns_str = (
         ", ".join(
-            (f"{k} = {v.get('value', '?')} {v.get('unit', '')}".strip() if isinstance(v, dict) else f"{k} = {v}")
+            (
+                f"{k} = {v.get('value', '?')} {v.get('unit', '')}".strip()
+                if isinstance(v, dict)
+                else f"{k} = {v}"
+            )
             for k, v in knowns.items()
         )
         or "—"
@@ -111,7 +124,7 @@ def _render_problem_spec(data: dict) -> str:
     unknowns_str = ", ".join(str(u) for u in unknowns) or "—"
 
     lines = [
-        f"| Field | Value |\n|-------|-------|\n",
+        "| Field | Value |\n|-------|-------|\n",
         f"| Domain | {domain} |\n",
         f"| Knowns | {knowns_str} |\n",
         f"| Unknowns | {unknowns_str} |\n\n",
@@ -126,7 +139,7 @@ def _render_problem_spec(data: dict) -> str:
     return "".join(lines)
 
 
-def _render_research_brief(data: dict) -> str:
+def _render_research_brief(data: dict[str, Any]) -> str:
     principles = data.get("principles", [])
     equations = data.get("candidate_equations", [])
     citations = data.get("citations", [])
@@ -152,7 +165,7 @@ def _render_research_brief(data: dict) -> str:
     return "".join(lines)
 
 
-def _render_solution_draft(data: dict) -> str:
+def _render_solution_draft(data: dict[str, Any]) -> str:
     method = data.get("method", "")
     steps = data.get("steps", [])
     final_answer = data.get("final_answer", "")
@@ -180,7 +193,7 @@ def _render_solution_draft(data: dict) -> str:
     return "".join(lines)
 
 
-def _render_verdict(data: dict) -> str:
+def _render_verdict(data: dict[str, Any]) -> str:
     approved = data.get("approved", False)
     issues = data.get("issues", [])
     severity = data.get("severity", "none")
@@ -210,35 +223,35 @@ def _fix_quarkdown_math(text: str) -> str:
     # 1. Multiline LaTeX blocks: $$ alone on a line, content lines, $$ alone.
     #    → Quarkdown $$$ fenced block.
     text = re.sub(
-        r'^\$\$\s*\n(.*?)\n\s*\$\$$',
-        lambda m: '$$$\n' + m.group(1) + '\n$$$',
+        r"^\$\$\s*\n(.*?)\n\s*\$\$$",
+        lambda m: "$$$\n" + m.group(1) + "\n$$$",
         text,
         flags=re.MULTILINE | re.DOTALL,
     )
 
     # 2. Single-line LaTeX display: $$ expr $$ → $ expr $
     text = re.sub(
-        r'(?<!\$)\$\$\s*([^$\n]+?)\s*\$\$(?!\$)',
-        lambda m: '$ ' + m.group(1).strip() + ' $',
+        r"(?<!\$)\$\$\s*([^$\n]+?)\s*\$\$(?!\$)",
+        lambda m: "$ " + m.group(1).strip() + " $",
         text,
     )
 
     # 3. Inline LaTeX: $expr$ (no surrounding spaces) → $ expr $
     text = re.sub(
-        r'(?<!\$)\$([^$\n]+?)\$(?!\$)',
-        lambda m: '$ ' + m.group(1).strip() + ' $',
+        r"(?<!\$)\$([^$\n]+?)\$(?!\$)",
+        lambda m: "$ " + m.group(1).strip() + " $",
         text,
     )
 
     # 4. .box {Title} type:{X} → .box type:{X} \n    **Title**
     #    The LLM writes positional title arg which Quarkdown rejects (body is required).
-    def _fix_box(m: re.Match) -> str:
+    def _fix_box(m: re.Match[str]) -> str:
         title = m.group(1).strip()
         box_type = m.group(2).strip()
-        return f'.box type:{{{box_type}}}\n    **{title}**'
+        return f".box type:{{{box_type}}}\n    **{title}**"
 
     text = re.sub(
-        r'\.box\s+\{([^}]+)\}\s+type:\{([^}]+)\}',
+        r"\.box\s+\{([^}]+)\}\s+type:\{([^}]+)\}",
         _fix_box,
         text,
     )

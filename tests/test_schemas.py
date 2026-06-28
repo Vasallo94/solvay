@@ -12,6 +12,7 @@ from solvay.schemas import (
     ResearchBrief,
     SolutionDraft,
     SolverLoopState,
+    SolverReport,
     Verdict,
 )
 
@@ -123,7 +124,6 @@ class TestDimCheckResult:
         assert r.ok
 
 
-
 class TestCritiqueEntry:
     def _draft(self) -> SolutionDraft:
         return SolutionDraft(
@@ -223,3 +223,39 @@ class TestSolverLoopState:
         )
         assert isinstance(state.critique_history[0], CritiqueEntry)
         assert state.critique_history[0].iteration == 0
+
+
+class TestSolverReport:
+    def _draft(self) -> SolutionDraft:
+        return SolutionDraft(
+            method="Newton",
+            steps=["F=ma"],
+            final_answer=Quantity(value=4.9, unit="m/s^2"),
+            code_trace=["9.81*sin(pi/6)"],
+        )
+
+    def test_minimal_consensus_report(self) -> None:
+        r = SolverReport(
+            draft=self._draft(),
+            termination_reason="consensus",
+            iterations_consumed=1,
+        )
+        assert r.solver_blocked is False
+        assert r.blocked_topic is None
+        assert r.open_issues == []
+        assert r.termination_reason == "consensus"
+
+    def test_no_review_and_blocked_allow_missing_draft(self) -> None:
+        r = SolverReport(termination_reason="no_review", iterations_consumed=0)
+        assert r.draft is None
+        b = SolverReport(
+            solver_blocked=True,
+            blocked_topic="GR",
+            termination_reason="judge_forced",
+            iterations_consumed=1,
+        )
+        assert b.blocked_topic == "GR"
+
+    def test_termination_reason_constrained(self) -> None:
+        with pytest.raises(ValidationError):
+            SolverReport(termination_reason="gave_up", iterations_consumed=1)

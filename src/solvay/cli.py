@@ -6,13 +6,15 @@ import json
 from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import typer
 from dotenv import load_dotenv
 
 load_dotenv()
 
-import os as _os
+import os as _os  # noqa: E402
+
 if not _os.environ.get("LANGSMITH_API_KEY"):
     _os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
     _os.environ.setdefault("LANGSMITH_TRACING", "false")
@@ -40,7 +42,7 @@ def _notebook_content(files: Mapping[str, object]) -> str:
     return ""
 
 
-def _schema_summary(schema_type: str, data: dict) -> str:
+def _schema_summary(schema_type: str, data: dict[str, Any]) -> str:
     if schema_type == "ProblemSpec":
         domain = data.get("domain", "?")
         unknowns = data.get("unknowns", [])
@@ -137,19 +139,20 @@ def solve(
 
     typer.echo(f"Solving: {problem[:80]}{'...' if len(problem) > 80 else ''}\n")
 
-    from solvay.config import SolvayConfig
-
     # For Ollama models cap generation to prevent Qwen thinking-mode runaway.
     import os as _os
+
+    from solvay.config import SolvayConfig
+
     _effective_model = model or _os.environ.get("SOLVAY_MODEL", "")
-    _model_kwargs: dict = {}
+    _model_kwargs: dict[str, Any] = {}
     if _effective_model.startswith("ollama:"):
         _model_kwargs = {"num_predict": 16384}
 
     config = SolvayConfig(default_model=model, model_kwargs=_model_kwargs)
     resolved = config.model_for("orchestrator")
     model_label = (
-        f"vertexai:{resolved.model_name}"  # type: ignore[union-attr]
+        f"vertexai:{getattr(resolved, 'model_name', str(resolved))}"
         if not isinstance(resolved, str)
         else resolved
     )
@@ -263,9 +266,7 @@ def chat(
 
             if seen_subagents:
                 elapsed = time.monotonic() - subagent_start
-                typer.echo(
-                    f"  \033[32m✓\033[0m {seen_subagents[-1]}  ({elapsed:.0f}s)"
-                )
+                typer.echo(f"  \033[32m✓\033[0m {seen_subagents[-1]}  ({elapsed:.0f}s)")
 
         except KeyboardInterrupt:
             typer.echo("\n\033[33mInterrupted.\033[0m\n")

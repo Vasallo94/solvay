@@ -1,0 +1,37 @@
+{
+  "id": "synth-thermo-c303",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "thermo",
+  "subdomain": "calorimetry",
+  "tags": [
+    "phase-change",
+    "mixing"
+  ],
+  "difficulty": "intermediate",
+  "statement": "95 g of ice at -8 C is dropped into 520 g of water at 32 C in an insulated container. Use c_ice = 2100 J/(kg K), L_fusion = 334 kJ/kg and c_water = 4186 J/(kg K). Find the final equilibrium temperature in degrees Celsius.",
+  "given": {
+    "m_ice": "95 g",
+    "T_ice": "-8 C",
+    "m_water": "520 g",
+    "T_water": "32 C"
+  },
+  "find": "Final equilibrium temperature (Celsius).",
+  "expected": {
+    "kind": "numeric",
+    "value": "14.11",
+    "unit": null,
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "All ice melts; Tf = (m_w c_w T_w - m_i c_i |T_i| - m_i L_f) / ((m_w+m_i) c_w). Checks: warm 1596.0 J + melt 31730.0 J < avail 69655.0 J."
+}

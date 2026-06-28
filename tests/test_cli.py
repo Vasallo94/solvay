@@ -111,13 +111,15 @@ def test_bench_help_mentions_ollama_model_strings() -> None:
 
 
 def _mock_events():
-    return iter([
-        SubagentStarted(name="parser", t=0.0),
-        SubagentFinished(name="parser", duration_s=5.0),
-        SubagentStarted(name="consolidator", t=5.0),
-        SubagentFinished(name="consolidator", duration_s=3.0),
-        RunFinished(total_s=8.0, final_answer="v = 14.0 m/s"),
-    ])
+    return iter(
+        [
+            SubagentStarted(name="parser", t=0.0),
+            SubagentFinished(name="parser", duration_s=5.0),
+            SubagentStarted(name="consolidator", t=5.0),
+            SubagentFinished(name="consolidator", duration_s=3.0),
+            RunFinished(total_s=8.0, final_answer="v = 14.0 m/s"),
+        ]
+    )
 
 
 class TestSolveReportGeneration:
@@ -155,13 +157,15 @@ class TestSolveReportGeneration:
     ) -> None:
         from solvay.streaming import ToolCallMade, ToolResultReceived
 
-        events = iter([
-            SubagentStarted(name="parser", t=0.0),
-            ToolCallMade(subagent="parser", tool="python_exec", args_preview="h=10"),
-            ToolResultReceived(subagent="parser", tool="python_exec", result_preview="h=10.0"),
-            SubagentFinished(name="parser", duration_s=5.0),
-            RunFinished(total_s=5.0, final_answer="v = 14 m/s"),
-        ])
+        events = iter(
+            [
+                SubagentStarted(name="parser", t=0.0),
+                ToolCallMade(subagent="parser", tool="python_exec", args_preview="h=10"),
+                ToolResultReceived(subagent="parser", tool="python_exec", result_preview="h=10.0"),
+                SubagentFinished(name="parser", duration_s=5.0),
+                RunFinished(total_s=5.0, final_answer="v = 14 m/s"),
+            ]
+        )
 
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr("solvay.cli.create_solvay_agent", lambda *a, **kw: MagicMock())
@@ -179,12 +183,14 @@ class TestSolveReportGeneration:
     ) -> None:
         from solvay.streaming import ToolCallMade
 
-        events = iter([
-            SubagentStarted(name="parser", t=0.0),
-            ToolCallMade(subagent="parser", tool="python_exec", args_preview="secret_arg"),
-            SubagentFinished(name="parser", duration_s=5.0),
-            RunFinished(total_s=5.0, final_answer="v = 14 m/s"),
-        ])
+        events = iter(
+            [
+                SubagentStarted(name="parser", t=0.0),
+                ToolCallMade(subagent="parser", tool="python_exec", args_preview="secret_arg"),
+                SubagentFinished(name="parser", duration_s=5.0),
+                RunFinished(total_s=5.0, final_answer="v = 14 m/s"),
+            ]
+        )
 
         monkeypatch.chdir(tmp_path)
         monkeypatch.setattr("solvay.cli.create_solvay_agent", lambda *a, **kw: MagicMock())

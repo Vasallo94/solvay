@@ -76,9 +76,7 @@ class TestPhysicsChecklist:
             try:
                 ast.parse(code)
             except SyntaxError as exc:
-                pytest.fail(
-                    f"Check '{check['name']}' has invalid Python code: {exc}\n\n{code}"
-                )
+                pytest.fail(f"Check '{check['name']}' has invalid Python code: {exc}\n\n{code}")
 
     def test_all_domains_produce_dimensional_check(self) -> None:
         for domain in _ALL_DOMAINS:

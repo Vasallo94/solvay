@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import pytest
 
+# The AFP feedback pipeline depends on the optional `afp` package
+# (Agent Feedback Protocol). cli.py already imports it lazily under a
+# try/except; skip this whole module when afp is not installed so the
+# suite still collects.
+pytest.importorskip("afp")
+
 from solvay.benchmark.feedback import (
     analyze_run,
     detect_grading_fallback,
@@ -11,26 +17,36 @@ from solvay.benchmark.feedback import (
     detect_unanimous_disagreement,
 )
 from solvay.benchmark.jsonl import RunRecord
-from solvay.benchmark.schema import Expected, Problem, Verification
+from solvay.benchmark.schema import Problem
 
 
 def _problem(pid: str = "test-001", expected_value: str = "3", kind: str = "numeric") -> Problem:
-    return Problem.model_validate({
-        "id": pid,
-        "version": 1,
-        "source": {"kind": "synthetic", "origin": "test", "generated_at": "2026-01-01T00:00:00Z", "seed": 0},
-        "domain": "mechanics",
-        "statement": "Find the answer.",
-        "given": {},
-        "find": "answer",
-        "expected": {
-            "kind": kind,
-            "value": expected_value,
-            "unit": None,
-            "tolerance_rel": 0.01,
-            "verification": {"method": "numeric_eval" if kind == "numeric" else "sympy_equivalence", "script": None},
-        },
-    })
+    return Problem.model_validate(
+        {
+            "id": pid,
+            "version": 1,
+            "source": {
+                "kind": "synthetic",
+                "origin": "test",
+                "generated_at": "2026-01-01T00:00:00Z",
+                "seed": 0,
+            },
+            "domain": "mechanics",
+            "statement": "Find the answer.",
+            "given": {},
+            "find": "answer",
+            "expected": {
+                "kind": kind,
+                "value": expected_value,
+                "unit": None,
+                "tolerance_rel": 0.01,
+                "verification": {
+                    "method": "numeric_eval" if kind == "numeric" else "sympy_equivalence",
+                    "script": None,
+                },
+            },
+        }
+    )
 
 
 def _record(
@@ -56,6 +72,7 @@ def _record(
 
 
 # --- Detector A: grading fallback ---
+
 
 class TestDetectGradingFallback:
     """Mirrors Bug 1: SymPy can't parse expected value (e.g. Q namespace collision)."""
@@ -89,6 +106,7 @@ class TestDetectGradingFallback:
 
 # --- Detector B: inconsistent grading ---
 
+
 class TestDetectInconsistentGrading:
     """Mirrors Bug 2: same n=2 answer graded True for prompted, False for bare."""
 
@@ -121,6 +139,7 @@ class TestDetectInconsistentGrading:
 
 # --- Detector C: unanimous disagreement ---
 
+
 class TestDetectUnanimousDisagreement:
     """Mirrors Bug 3: all profiles give correct answer but expected is wrong."""
 
@@ -152,11 +171,14 @@ class TestDetectUnanimousDisagreement:
 
 # --- Integration: analyze_run ---
 
+
 class TestAnalyzeRun:
     def test_combines_all_detectors(self):
         records = [
             _record(problem_id="p1", profile="bare", correct=False, grading_method="llm-judge"),
-            _record(problem_id="p1", profile="prompted", correct=False, grading_method="llm-judge"),
+            _record(
+                problem_id="p1", profile="prompted", correct=False, grading_method="llm-judge"
+            ),
             _record(problem_id="p2", profile="bare", correct=False, answer_raw="x=5"),
             _record(problem_id="p2", profile="prompted", correct=True, answer_raw="x=5"),
         ]

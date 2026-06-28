@@ -1,0 +1,36 @@
+{
+  "id": "synth-astro-e501",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "astro",
+  "subdomain": "orbital-mechanics",
+  "tags": [
+    "circular-orbit",
+    "kepler"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A satellite is in a circular orbit 8.2e5 m above the surface of a planet of mass 4.8e24 kg and radius 6.9e6 m. Use G = 6.674e-11 N m^2/kg^2. Find the orbital period.",
+  "given": {
+    "M": "4.8e24 kg",
+    "R": "6.9e6 m",
+    "h": "8.2e5 m"
+  },
+  "find": "Orbital period of the satellite.",
+  "expected": {
+    "kind": "numeric",
+    "value": "7530",
+    "unit": "s",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "T = 2 pi sqrt((R+h)^3 / (G M)). r = 7.72e+06 m."
+}

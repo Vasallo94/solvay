@@ -47,7 +47,9 @@ def test_peer_reviewer_has_physics_checklist_tool() -> None:
     from solvay.config import SolvayConfig
     from solvay.subagents.peer_reviewer import create_peer_reviewer_subagent
 
-    stub = lambda **kw: {"results": [], "error": "stub"}
+    def stub(**kw: object) -> dict[str, object]:
+        return {"results": [], "error": "stub"}
+
     config = SolvayConfig(default_model="fake-model")
     spec = create_peer_reviewer_subagent(config, web_search_tool=stub)
 
@@ -78,3 +80,10 @@ def test_no_auto_general_purpose_subagent() -> None:
     assert "general-purpose" in names, (
         f"'general-purpose' subagent not found in subagents list: {names}"
     )
+
+
+def test_solver_wired_from_conversational_module() -> None:
+    # The solver factory must come from the conversational module, not solver_loop.
+    import solvay.agent as agent_module
+
+    assert agent_module.create_solver_subagent.__module__ == "solvay.subagents.solver"

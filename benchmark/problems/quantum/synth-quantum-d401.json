@@ -1,0 +1,36 @@
+{
+  "id": "synth-quantum-d401",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "quantum",
+  "subdomain": "infinite-square-well",
+  "tags": [
+    "particle-in-a-box",
+    "photon-emission"
+  ],
+  "difficulty": "intermediate",
+  "statement": "An electron is confined to a one-dimensional infinite square well of width 1.1 nm. It drops from the n = 3 level to the n = 2 level, emitting one photon. Use h = 6.626e-34 J s, m_e = 9.109e-31 kg and c = 2.998e8 m/s. Find the wavelength of the emitted photon.",
+  "given": {
+    "L": "1.1 nm",
+    "n_initial": "3",
+    "n_final": "2"
+  },
+  "find": "Wavelength of the emitted photon.",
+  "expected": {
+    "kind": "numeric",
+    "value": "7.979e-07",
+    "unit": "m",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "E_n = n^2 h^2/(8 m L^2); dE = 5 E_1; lambda = h c / dE. E_1 = 4.97917e-20 J."
+}

@@ -1,0 +1,37 @@
+{
+  "id": "synth-astro-e502",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "astro",
+  "subdomain": "orbital-mechanics",
+  "tags": [
+    "circular-orbit",
+    "gravitation"
+  ],
+  "difficulty": "easy",
+  "statement": "A spacecraft moves in a circular orbit at altitude h above the surface of a planet of mass M and radius R. The gravitational constant is G. Express the orbital speed in terms of G, M, R and h.",
+  "given": {
+    "G": "gravitational constant (symbol)",
+    "M": "planet mass (symbol)",
+    "R": "planet radius (symbol)",
+    "h": "altitude (symbol)"
+  },
+  "find": "Orbital speed.",
+  "expected": {
+    "kind": "symbolic",
+    "value": "sqrt(G*M/(R + h))",
+    "unit": "m/s",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "sympy_equivalence",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "v = sqrt(G M / r) with r = R + h."
+}

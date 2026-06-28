@@ -54,6 +54,17 @@ class SolverResponse(BaseModel):
     code_trace: list[str] = Field(default_factory=list)
 
 
+class SolverReport(BaseModel):
+    """Final report from the conversational solver."""
+
+    solver_blocked: bool = False
+    blocked_topic: str | None = None
+    draft: SolutionDraft | None = None
+    termination_reason: Literal["consensus", "budget_exhausted", "judge_forced", "no_review"]
+    iterations_consumed: int
+    open_issues: list[str] = Field(default_factory=list)
+
+
 class Verdict(BaseModel):
     """Verifier or peer-reviewer judgment on a solution draft."""
 
@@ -80,7 +91,6 @@ class DimCheckResult(BaseModel):
     actual_unit: str
     simplified: str
     notes: str | None = None
-
 
 
 class CritiqueEntry(BaseModel):

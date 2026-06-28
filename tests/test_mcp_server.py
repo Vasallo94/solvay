@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,8 +12,7 @@ from solvay.mcp_server import (
     _list_models_impl,
     _solve_physics_impl,
 )
-from solvay.streaming import RunCollector, RunFinished, SubagentFinished, SubagentStarted
-
+from solvay.streaming import RunFinished, SubagentFinished, SubagentStarted
 
 # ---------------------------------------------------------------------------
 # Helpers

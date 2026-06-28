@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 from typing import Any, cast
@@ -92,7 +93,7 @@ def build_solver_loop_graph(
             return parsed if isinstance(parsed, dict) else {}
         return {}
 
-    _SOLVER_JSON_SUFFIX = (
+    _SOLVER_JSON_SUFFIX = (  # noqa: N806
         "\n\nRespond with a JSON object containing these fields: "
         "solver_blocked (bool), blocked_topic (string or null), "
         "method (string), steps (list of strings), "
@@ -123,9 +124,10 @@ def build_solver_loop_graph(
                 if hasattr(structured, "model_dump"):
                     return structured.model_dump()
                 return structured
-            messages = result.get("messages")
-            if messages:
-                last_message = messages[-1]
+            raw_messages = result.get("messages")
+            result_messages: list[Any] = raw_messages if isinstance(raw_messages, list) else []
+            if result_messages:
+                last_message = result_messages[-1]
                 return _parse_json_response(getattr(last_message, "content", ""))
         return {}
 
@@ -140,10 +142,8 @@ def build_solver_loop_graph(
             re.DOTALL,
         )
         if spec_match:
-            try:
+            with contextlib.suppress(json.JSONDecodeError, ValueError):
                 problem_spec = json.loads(spec_match.group(1))
-            except (json.JSONDecodeError, ValueError):
-                pass
 
         brief_match = re.search(
             r"Research:\s*\n(\{.*?\})\s*$",
@@ -151,10 +151,8 @@ def build_solver_loop_graph(
             re.DOTALL,
         )
         if brief_match:
-            try:
+            with contextlib.suppress(json.JSONDecodeError, ValueError):
                 research_brief = json.loads(brief_match.group(1))
-            except (json.JSONDecodeError, ValueError):
-                pass
 
         if not problem_spec:
             problem_spec = {"raw_description": text}

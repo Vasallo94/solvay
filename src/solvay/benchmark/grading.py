@@ -13,9 +13,7 @@ from solvay.benchmark.schema import Expected, Problem
 
 # Regex patterns used for extraction
 _NUMERIC_PATTERN = re.compile(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?")
-_SYMBOLIC_PATTERN = re.compile(
-    r"[a-zA-Z_]\w*(?:\s*[\*\+\-/\^]\s*[a-zA-Z_\d\.\(\)]*)+"
-)
+_SYMBOLIC_PATTERN = re.compile(r"[a-zA-Z_]\w*(?:\s*[\*\+\-/\^]\s*[a-zA-Z_\d\.\(\)]*)+")
 _FRAC_PATTERN = re.compile(r"\\frac\{([^}]+)\}\{([^}]+)\}")
 _IDENTIFIER_PATTERN = re.compile(r"[a-zA-Z_]\w*")
 
@@ -39,10 +37,35 @@ def _latex_to_sympy_str(latex: str) -> str:
     parts = re.split(r"\\(?:sim|approx|propto|simeq)\s*", s, maxsplit=1)
     if len(parts) == 2:
         s = parts[1]
-    for cmd in ["partial", "nabla", "infty", "alpha", "beta", "theta", "phi",
-                "psi", "omega", "Omega", "pi", "epsilon", "delta", "Delta",
-                "sigma", "Sigma", "lambda", "Lambda", "mu", "nu", "rho", "tau",
-                "kappa", "chi", "eta", "xi", "zeta"]:
+    for cmd in [
+        "partial",
+        "nabla",
+        "infty",
+        "alpha",
+        "beta",
+        "theta",
+        "phi",
+        "psi",
+        "omega",
+        "Omega",
+        "pi",
+        "epsilon",
+        "delta",
+        "Delta",
+        "sigma",
+        "Sigma",
+        "lambda",
+        "Lambda",
+        "mu",
+        "nu",
+        "rho",
+        "tau",
+        "kappa",
+        "chi",
+        "eta",
+        "xi",
+        "zeta",
+    ]:
         s = s.replace(f"\\{cmd}", cmd)
     s = s.replace("\\cdot", "*").replace("\\times", "*")
     s = s.replace("\\left", "").replace("\\right", "")
@@ -62,7 +85,7 @@ def _latex_to_sympy_str(latex: str) -> str:
     s = re.sub(r"(?<=\w)\s+(?=\w)", "*", s)
     s = re.sub(r"(?<=\))(?=[a-zA-Z(])", "*", s)
     s = re.sub(r"(?<=\d)(?=[a-zA-Z])", "*", s)
-    _KNOWN_FUNCS = {"sqrt", "sin", "cos", "tan", "exp", "log", "ln", "abs"}
+    _KNOWN_FUNCS = {"sqrt", "sin", "cos", "tan", "exp", "log", "ln", "abs"}  # noqa: N806
     for fn in _KNOWN_FUNCS:
         s = s.replace(f"{fn}*", f"{fn}")
     return s
@@ -89,9 +112,9 @@ def sympy_grade(answer_raw: str, expected: Expected) -> bool | None:
     """Attempt to grade answer_raw against expected using SymPy.
 
     Returns:
-        True  – answer is correct.
-        False – answer is definitively wrong.
-        None  – could not determine (no parseable expression found, or
+        True  - answer is correct.
+        False - answer is definitively wrong.
+        None  - could not determine (no parseable expression found, or
                 expected itself could not be parsed).
     """
     if expected.kind == "numeric":
@@ -168,14 +191,24 @@ def _safe_sympify(expr_str: str) -> sympy.Expr | None:
     """Parse expr_str into a SymPy expression, shielding variable names
     that collide with SymPy built-ins (Q, S, N, I, E, O, ...).
     """
-    _SYMPY_FUNCS = {"sqrt", "sin", "cos", "tan", "exp", "log", "ln", "abs",
-                    "pi", "oo", "zoo", "nan", "true", "false"}
-    identifiers = set(_IDENTIFIER_PATTERN.findall(expr_str))
-    local_dict = {
-        name: sympy.Symbol(name)
-        for name in identifiers
-        if name not in _SYMPY_FUNCS
+    _SYMPY_FUNCS = {  # noqa: N806
+        "sqrt",
+        "sin",
+        "cos",
+        "tan",
+        "exp",
+        "log",
+        "ln",
+        "abs",
+        "pi",
+        "oo",
+        "zoo",
+        "nan",
+        "true",
+        "false",
     }
+    identifiers = set(_IDENTIFIER_PATTERN.findall(expr_str))
+    local_dict = {name: sympy.Symbol(name) for name in identifiers if name not in _SYMPY_FUNCS}
     try:
         return sympy.sympify(expr_str, locals=local_dict)
     except Exception:
@@ -258,7 +291,8 @@ def llm_grade(
 
     try:
         response = llm.invoke(prompt)
-        data = json.loads(response.content)
+        content = response.content
+        data = json.loads(content if isinstance(content, str) else str(content))
         return bool(data["correct"])
     except Exception:
         return False

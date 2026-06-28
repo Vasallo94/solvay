@@ -1,0 +1,40 @@
+{
+  "id": "synth-mech-a101",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "energy-methods",
+  "tags": [
+    "incline",
+    "friction",
+    "spring",
+    "energy"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A 1.7 kg block is released from rest and slides 2.3 m down a 24 degree incline with coefficient of kinetic friction 0.13. At the bottom it moves onto a frictionless horizontal surface and runs into a spring of stiffness 410 N/m. Take g = 9.81 m/s^2. Find the maximum compression of the spring.",
+  "given": {
+    "m": "1.7 kg",
+    "theta": "24 deg",
+    "mu_k": "0.13",
+    "d": "2.3 m",
+    "k": "410 N/m"
+  },
+  "find": "Maximum spring compression.",
+  "expected": {
+    "kind": "numeric",
+    "value": "0.2321",
+    "unit": "m",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "x = sqrt(m*v^2/k), v^2 = 2*d*g*(sin(theta) - mu*cos(theta)). v^2 = 12.995193 m^2/s^2."
+}

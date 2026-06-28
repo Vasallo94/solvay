@@ -1,0 +1,36 @@
+{
+  "id": "synth-mech-a104",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "rigid-body-dynamics",
+  "tags": [
+    "rolling",
+    "incline",
+    "moment-of-inertia"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A uniform solid cylinder starts from rest and rolls without slipping down an 18 degree incline. Take g = 9.81 m/s^2. How long does it take to travel 3.4 m along the incline?",
+  "given": {
+    "theta": "18 deg",
+    "d": "3.4 m"
+  },
+  "find": "Time to roll 3.4 m from rest.",
+  "expected": {
+    "kind": "numeric",
+    "value": "1.834",
+    "unit": "s",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "a = (2/3) g sin(theta) for solid cylinder; t = sqrt(2d/a). a = 2.020971 m/s^2."
+}

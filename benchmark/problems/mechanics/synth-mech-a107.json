@@ -1,0 +1,35 @@
+{
+  "id": "synth-mech-a107",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "circular-motion",
+  "tags": [
+    "friction",
+    "rotation"
+  ],
+  "difficulty": "easy",
+  "statement": "A small coin rests 0.18 m from the axis of a horizontal turntable. The coefficient of static friction between coin and surface is 0.31. Take g = 9.81 m/s^2. What is the maximum angular speed of the turntable for which the coin does not slip?",
+  "given": {
+    "mu_s": "0.31",
+    "r": "0.18 m"
+  },
+  "find": "Maximum angular speed without slipping.",
+  "expected": {
+    "kind": "numeric",
+    "value": "4.11",
+    "unit": "rad/s",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "mu_s g = omega^2 r; omega = sqrt(mu_s g / r)."
+}

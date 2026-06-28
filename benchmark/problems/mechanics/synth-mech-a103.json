@@ -1,0 +1,36 @@
+{
+  "id": "synth-mech-a103",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "mechanics",
+  "subdomain": "projectile-motion",
+  "tags": [
+    "projectile",
+    "incline"
+  ],
+  "difficulty": "intermediate",
+  "statement": "A projectile is launched from the base of a hill at 17 m/s, at 38 degrees above the horizontal. The hillside rises as a straight incline of 12 degrees above the horizontal, in the launch direction. Take g = 9.81 m/s^2. How far from the launch point, measured along the hillside, does the projectile land?",
+  "given": {
+    "v0": "17 m/s",
+    "theta": "38 deg",
+    "alpha": "12 deg"
+  },
+  "find": "Distance along the incline to the landing point.",
+  "expected": {
+    "kind": "numeric",
+    "value": "21.27",
+    "unit": "m",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "R = 2 v0^2 cos(theta) sin(theta-alpha) / (g cos^2(alpha))."
+}

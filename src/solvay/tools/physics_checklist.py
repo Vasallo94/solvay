@@ -183,8 +183,8 @@ _DOMAIN_CHECKS: dict[str, list[dict[str, str]]] = {
                 "volume_dissipation = 0.0  # placeholder (W)\n"
                 "\n"
                 "assert np.isclose(surface_integral, volume_dissipation, rtol=1e-6), (\n"
-                "    f\"Poynting balance failed: S_surface={surface_integral} W, \"\n"
-                "    f\"P_dissipated={volume_dissipation} W\"\n"
+                '    f"Poynting balance failed: S_surface={surface_integral} W, "\n'
+                '    f"P_dissipated={volume_dissipation} W"\n'
                 ")\n"
             ),
         },

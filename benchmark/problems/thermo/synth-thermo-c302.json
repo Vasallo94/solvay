@@ -1,0 +1,36 @@
+{
+  "id": "synth-thermo-c302",
+  "version": 1,
+  "source": {
+    "kind": "synthetic",
+    "origin": "fable-5-handcrafted",
+    "generated_at": "2026-06-10T23:59:00Z",
+    "seed": null
+  },
+  "domain": "thermo",
+  "subdomain": "heat-engines",
+  "tags": [
+    "carnot",
+    "efficiency"
+  ],
+  "difficulty": "easy",
+  "statement": "A Carnot engine operates between reservoirs at 540 K and 300 K, absorbing 1250 J from the hot reservoir each cycle. How much work does it deliver per cycle?",
+  "given": {
+    "T_hot": "540 K",
+    "T_cold": "300 K",
+    "Q_in": "1250 J"
+  },
+  "find": "Work delivered per cycle.",
+  "expected": {
+    "kind": "numeric",
+    "value": "555.6",
+    "unit": "J",
+    "tolerance_rel": 0.01,
+    "verification": {
+      "method": "numeric_eval",
+      "script": null
+    }
+  },
+  "contamination": null,
+  "notes": "W = Q_in (1 - Tc/Th)."
+}
