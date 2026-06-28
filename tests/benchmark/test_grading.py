@@ -238,7 +238,7 @@ class TestPrioritizedNumericGrading:
 class TestSafeSympify:
     """Tests for _safe_sympify handling SymPy namespace collisions."""
 
-    def test_Q_as_symbol(self):
+    def test_Q_as_symbol(self):  # noqa: N802
         expr = _safe_sympify("hbar*c_s**2/(k_B*Q)")
         assert expr is not None
         assert str(expr) == "c_s**2*hbar/(Q*k_B)"
@@ -248,12 +248,12 @@ class TestSafeSympify:
             expr = _safe_sympify(f"x*{name}")
             assert expr is not None, f"Failed to parse 'x*{name}'"
 
-    def test_symbolic_grade_with_Q_variable(self):
+    def test_symbolic_grade_with_Q_variable(self):  # noqa: N802
         expected = _symbolic_expected("hbar*c_s**2/(k_B*Q)")
         answer = r"\[\frac{\hbar c_s^2}{k_B Q}\]"
         assert sympy_grade(answer, expected) is True
 
-    def test_symbolic_grade_with_Q_wrong_answer(self):
+    def test_symbolic_grade_with_Q_wrong_answer(self):  # noqa: N802
         expected = _symbolic_expected("hbar*c_s**2/(k_B*Q)")
         answer = r"\[\frac{\hbar c_s}{k_B Q}\]"
         assert sympy_grade(answer, expected) is False

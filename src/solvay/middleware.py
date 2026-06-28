@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from langchain.agents.middleware import AgentMiddleware, ToolCallRequest
 from langchain_core.messages import ToolMessage
@@ -19,7 +19,7 @@ SUBAGENT_CALL_LIMITS: dict[str, int] = {
 }
 
 
-class SubagentCallLimitMiddleware(AgentMiddleware):  # type: ignore[type-arg]
+class SubagentCallLimitMiddleware(AgentMiddleware):
     """Enforce per-subagent-type call limits on the ``task`` tool.
 
     Tracks how many times each ``subagent_type`` has been dispatched
@@ -66,7 +66,7 @@ class SubagentCallLimitMiddleware(AgentMiddleware):  # type: ignore[type-arg]
     ) -> ToolMessage | Command[Any]:
         tool_name = request.tool_call.get("name")
         if tool_name != "task":
-            return await handler(request)
+            return cast(ToolMessage | Command[Any], await handler(request))
 
         subagent_type = request.tool_call.get("args", {}).get("subagent_type", "")
         limit = self._limits.get(subagent_type)
@@ -85,4 +85,4 @@ class SubagentCallLimitMiddleware(AgentMiddleware):  # type: ignore[type-arg]
                 )
             self._counts[subagent_type] = current + 1
 
-        return await handler(request)
+        return cast(ToolMessage | Command[Any], await handler(request))

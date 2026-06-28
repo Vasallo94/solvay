@@ -47,7 +47,9 @@ def test_peer_reviewer_has_physics_checklist_tool() -> None:
     from solvay.config import SolvayConfig
     from solvay.subagents.peer_reviewer import create_peer_reviewer_subagent
 
-    stub = lambda **kw: {"results": [], "error": "stub"}
+    def stub(**kw: object) -> dict[str, object]:
+        return {"results": [], "error": "stub"}
+
     config = SolvayConfig(default_model="fake-model")
     spec = create_peer_reviewer_subagent(config, web_search_tool=stub)
 

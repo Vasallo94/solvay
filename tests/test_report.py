@@ -99,7 +99,8 @@ class TestGenerateQuarkdown:
 
     def test_consolidator_not_rendered_as_pipeline_section(self) -> None:
         qd = generate_quarkdown(_make_collector())
-        # Consolidator section should not appear in pipeline sections (consolidator is special-cased)
+        # Consolidator section should not appear in pipeline sections
+        # (consolidator is special-cased)
         # Its output goes into the Final Answer section, not a separate numbered section
         assert "## Consolidator" not in qd
 

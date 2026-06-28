@@ -10,7 +10,7 @@ import pytest
 # suite still collects.
 pytest.importorskip("afp")
 
-from solvay.benchmark.feedback import (  # noqa: E402
+from solvay.benchmark.feedback import (
     analyze_run,
     detect_grading_fallback,
     detect_inconsistent_grading,

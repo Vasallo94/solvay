@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any, Union
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # StreamEvent dataclasses
@@ -36,7 +36,7 @@ class ToolResultReceived:
 class SchemaProduced:
     subagent: str
     schema_type: str  # "ProblemSpec", "ResearchBrief", "SolutionDraft", "Verdict"
-    data: dict  # full parsed dict
+    data: dict[str, Any]  # full parsed dict
 
 
 @dataclass
@@ -58,15 +58,15 @@ class OrchestratorDispatched:
     t: float
 
 
-StreamEvent = Union[
-    SubagentStarted,
-    ToolCallMade,
-    ToolResultReceived,
-    SchemaProduced,
-    SubagentFinished,
-    RunFinished,
-    OrchestratorDispatched,
-]
+StreamEvent = (
+    SubagentStarted
+    | ToolCallMade
+    | ToolResultReceived
+    | SchemaProduced
+    | SubagentFinished
+    | RunFinished
+    | OrchestratorDispatched
+)
 
 # ---------------------------------------------------------------------------
 # RunCollector
@@ -91,7 +91,7 @@ class SubagentRun:
     name: str
     duration_s: float = 0.0
     tool_calls: list[ToolCallRecord] = field(default_factory=list)
-    schemas: list[tuple[str, dict]] = field(default_factory=list)
+    schemas: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
 
 
 @dataclass

@@ -70,6 +70,10 @@ ignore_missing_imports = true
 module = ["tavily", "tavily.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["afp", "afp.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 

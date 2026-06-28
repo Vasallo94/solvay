@@ -6,13 +6,14 @@ import json
 from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import typer
 from dotenv import load_dotenv
 
 load_dotenv()
 
-import os as _os
+import os as _os  # noqa: E402
 
 if not _os.environ.get("LANGSMITH_API_KEY"):
     _os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
@@ -41,7 +42,7 @@ def _notebook_content(files: Mapping[str, object]) -> str:
     return ""
 
 
-def _schema_summary(schema_type: str, data: dict) -> str:
+def _schema_summary(schema_type: str, data: dict[str, Any]) -> str:
     if schema_type == "ProblemSpec":
         domain = data.get("domain", "?")
         unknowns = data.get("unknowns", [])
@@ -144,14 +145,14 @@ def solve(
     from solvay.config import SolvayConfig
 
     _effective_model = model or _os.environ.get("SOLVAY_MODEL", "")
-    _model_kwargs: dict = {}
+    _model_kwargs: dict[str, Any] = {}
     if _effective_model.startswith("ollama:"):
         _model_kwargs = {"num_predict": 16384}
 
     config = SolvayConfig(default_model=model, model_kwargs=_model_kwargs)
     resolved = config.model_for("orchestrator")
     model_label = (
-        f"vertexai:{resolved.model_name}"  # type: ignore[union-attr]
+        f"vertexai:{getattr(resolved, 'model_name', str(resolved))}"
         if not isinstance(resolved, str)
         else resolved
     )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel
@@ -111,7 +111,7 @@ def resolve_model(model: str | BaseChatModel, **kwargs: Any) -> BaseChatModel:
         return model
     from langchain.chat_models import init_chat_model
 
-    return init_chat_model(model, **kwargs)
+    return cast("BaseChatModel", init_chat_model(model, **kwargs))
 
 
 def _build_vertex_model(model_string: str) -> BaseChatModel:

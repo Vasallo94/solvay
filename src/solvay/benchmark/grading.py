@@ -85,7 +85,7 @@ def _latex_to_sympy_str(latex: str) -> str:
     s = re.sub(r"(?<=\w)\s+(?=\w)", "*", s)
     s = re.sub(r"(?<=\))(?=[a-zA-Z(])", "*", s)
     s = re.sub(r"(?<=\d)(?=[a-zA-Z])", "*", s)
-    _KNOWN_FUNCS = {"sqrt", "sin", "cos", "tan", "exp", "log", "ln", "abs"}
+    _KNOWN_FUNCS = {"sqrt", "sin", "cos", "tan", "exp", "log", "ln", "abs"}  # noqa: N806
     for fn in _KNOWN_FUNCS:
         s = s.replace(f"{fn}*", f"{fn}")
     return s
@@ -112,9 +112,9 @@ def sympy_grade(answer_raw: str, expected: Expected) -> bool | None:
     """Attempt to grade answer_raw against expected using SymPy.
 
     Returns:
-        True  – answer is correct.
-        False – answer is definitively wrong.
-        None  – could not determine (no parseable expression found, or
+        True  - answer is correct.
+        False - answer is definitively wrong.
+        None  - could not determine (no parseable expression found, or
                 expected itself could not be parsed).
     """
     if expected.kind == "numeric":
@@ -191,7 +191,7 @@ def _safe_sympify(expr_str: str) -> sympy.Expr | None:
     """Parse expr_str into a SymPy expression, shielding variable names
     that collide with SymPy built-ins (Q, S, N, I, E, O, ...).
     """
-    _SYMPY_FUNCS = {
+    _SYMPY_FUNCS = {  # noqa: N806
         "sqrt",
         "sin",
         "cos",
@@ -291,7 +291,8 @@ def llm_grade(
 
     try:
         response = llm.invoke(prompt)
-        data = json.loads(response.content)
+        content = response.content
+        data = json.loads(content if isinstance(content, str) else str(content))
         return bool(data["correct"])
     except Exception:
         return False

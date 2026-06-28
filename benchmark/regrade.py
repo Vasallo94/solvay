@@ -13,9 +13,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from solvay.benchmark.config import BenchConfig
-from solvay.benchmark.grading import evaluate_correct
-from solvay.benchmark.schema import Expected, Problem
+from solvay.benchmark.config import BenchConfig  # noqa: E402
+from solvay.benchmark.grading import evaluate_correct  # noqa: E402
+from solvay.benchmark.schema import Expected, Problem  # noqa: E402
 
 
 def load_problems() -> dict[str, dict]:

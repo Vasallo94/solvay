@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import re
+from typing import Any
 
 from solvay.streaming import RunCollector, SubagentRun
 
@@ -25,6 +26,10 @@ def generate_quarkdown(collector: RunCollector) -> str:
     duration_str = _fmt_duration(collector.total_s)
     title = _title_from_problem(collector.problem)
 
+    meta_line = (
+        f"**Domain:** {domain} | **Model:** {collector.model}"
+        f" | **Date:** {date_str} | **Duration:** {duration_str}"
+    )
     parts.append(
         f""".docname {{Solvay Solution Report}}
 .doctype {{plain}}
@@ -35,7 +40,7 @@ def generate_quarkdown(collector: RunCollector) -> str:
 
 # {title}
 
-**Domain:** {domain} | **Model:** {collector.model} | **Date:** {date_str} | **Duration:** {duration_str}
+{meta_line}
 
 ---
 
@@ -99,7 +104,7 @@ def _render_subagent_section(run: SubagentRun) -> str:
     return "".join(lines)
 
 
-def _render_problem_spec(data: dict) -> str:
+def _render_problem_spec(data: dict[str, Any]) -> str:
     domain = data.get("domain", "unknown")
     knowns = data.get("knowns", {})
     unknowns = data.get("unknowns", [])
@@ -134,7 +139,7 @@ def _render_problem_spec(data: dict) -> str:
     return "".join(lines)
 
 
-def _render_research_brief(data: dict) -> str:
+def _render_research_brief(data: dict[str, Any]) -> str:
     principles = data.get("principles", [])
     equations = data.get("candidate_equations", [])
     citations = data.get("citations", [])
@@ -160,7 +165,7 @@ def _render_research_brief(data: dict) -> str:
     return "".join(lines)
 
 
-def _render_solution_draft(data: dict) -> str:
+def _render_solution_draft(data: dict[str, Any]) -> str:
     method = data.get("method", "")
     steps = data.get("steps", [])
     final_answer = data.get("final_answer", "")
@@ -188,7 +193,7 @@ def _render_solution_draft(data: dict) -> str:
     return "".join(lines)
 
 
-def _render_verdict(data: dict) -> str:
+def _render_verdict(data: dict[str, Any]) -> str:
     approved = data.get("approved", False)
     issues = data.get("issues", [])
     severity = data.get("severity", "none")
@@ -240,7 +245,7 @@ def _fix_quarkdown_math(text: str) -> str:
 
     # 4. .box {Title} type:{X} → .box type:{X} \n    **Title**
     #    The LLM writes positional title arg which Quarkdown rejects (body is required).
-    def _fix_box(m: re.Match) -> str:
+    def _fix_box(m: re.Match[str]) -> str:
         title = m.group(1).strip()
         box_type = m.group(2).strip()
         return f".box type:{{{box_type}}}\n    **{title}**"

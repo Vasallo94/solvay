@@ -14,7 +14,7 @@ class ComparisonReport:
     profiles: list[str]  # sorted
     problems: list[str]  # sorted
     results: dict[str, dict[str, bool | None]]  # {problem_id: {profile: correct}}
-    accuracy: dict[str, float]  # {profile: 0.0–1.0}
+    accuracy: dict[str, float]  # {profile: 0.0-1.0}
     avg_time: dict[str, float]  # {profile: seconds}
     avg_tokens: dict[str, float]  # {profile: output token count}
 

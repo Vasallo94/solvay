@@ -86,9 +86,9 @@ class TestRunCollector:
 # Fake stream objects for parse_stream tests
 # ---------------------------------------------------------------------------
 
-from dataclasses import dataclass as _dc
-from dataclasses import field as _field
-from typing import Any as _Any
+from dataclasses import dataclass as _dc  # noqa: E402
+from dataclasses import field as _field  # noqa: E402
+from typing import Any as _Any  # noqa: E402
 
 
 @_dc
@@ -180,7 +180,10 @@ class TestParseStream:
         assert results[0].tool == "python_exec"
 
     def test_schema_produced_when_output_matches_known_schema(self) -> None:
-        output = '{"principles": ["F=ma"], "candidate_equations": ["F=ma"], "analogies": [], "citations": []}'
+        output = (
+            '{"principles": ["F=ma"], "candidate_equations": ["F=ma"],'
+            ' "analogies": [], "citations": []}'
+        )
         tc = _FakeToolCall(tool_name="web_search", input="query", output=output)
         stream = _FakeStream(subagents=[_FakeSubagent(name="researcher", tool_calls=[tc])])
         agent = self._make_agent(stream)
