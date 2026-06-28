@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import datetime
-
 from solvay.report import generate_quarkdown
 from solvay.streaming import RunCollector, SubagentRun, ToolCallRecord
 

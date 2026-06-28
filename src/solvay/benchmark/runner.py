@@ -41,7 +41,6 @@ def _solvay_version() -> str:
         return "unknown"
 
 
-
 @dataclass(frozen=True)
 class MatrixResult:
     out_path: Path

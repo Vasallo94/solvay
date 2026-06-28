@@ -55,7 +55,11 @@ def generate_quarkdown(collector: RunCollector) -> str:
 
     # Final answer — written by consolidator in Quarkdown format
     parts.append("## Final Answer\n\n")
-    parts.append(_fix_quarkdown_math(collector.final_answer) if collector.final_answer else "*No answer recorded.*")
+    parts.append(
+        _fix_quarkdown_math(collector.final_answer)
+        if collector.final_answer
+        else "*No answer recorded.*"
+    )
     parts.append("\n\n---\n\n")
 
     # Run metadata
@@ -103,7 +107,11 @@ def _render_problem_spec(data: dict) -> str:
 
     knowns_str = (
         ", ".join(
-            (f"{k} = {v.get('value', '?')} {v.get('unit', '')}".strip() if isinstance(v, dict) else f"{k} = {v}")
+            (
+                f"{k} = {v.get('value', '?')} {v.get('unit', '')}".strip()
+                if isinstance(v, dict)
+                else f"{k} = {v}"
+            )
             for k, v in knowns.items()
         )
         or "—"
@@ -111,7 +119,7 @@ def _render_problem_spec(data: dict) -> str:
     unknowns_str = ", ".join(str(u) for u in unknowns) or "—"
 
     lines = [
-        f"| Field | Value |\n|-------|-------|\n",
+        "| Field | Value |\n|-------|-------|\n",
         f"| Domain | {domain} |\n",
         f"| Knowns | {knowns_str} |\n",
         f"| Unknowns | {unknowns_str} |\n\n",
@@ -210,23 +218,23 @@ def _fix_quarkdown_math(text: str) -> str:
     # 1. Multiline LaTeX blocks: $$ alone on a line, content lines, $$ alone.
     #    → Quarkdown $$$ fenced block.
     text = re.sub(
-        r'^\$\$\s*\n(.*?)\n\s*\$\$$',
-        lambda m: '$$$\n' + m.group(1) + '\n$$$',
+        r"^\$\$\s*\n(.*?)\n\s*\$\$$",
+        lambda m: "$$$\n" + m.group(1) + "\n$$$",
         text,
         flags=re.MULTILINE | re.DOTALL,
     )
 
     # 2. Single-line LaTeX display: $$ expr $$ → $ expr $
     text = re.sub(
-        r'(?<!\$)\$\$\s*([^$\n]+?)\s*\$\$(?!\$)',
-        lambda m: '$ ' + m.group(1).strip() + ' $',
+        r"(?<!\$)\$\$\s*([^$\n]+?)\s*\$\$(?!\$)",
+        lambda m: "$ " + m.group(1).strip() + " $",
         text,
     )
 
     # 3. Inline LaTeX: $expr$ (no surrounding spaces) → $ expr $
     text = re.sub(
-        r'(?<!\$)\$([^$\n]+?)\$(?!\$)',
-        lambda m: '$ ' + m.group(1).strip() + ' $',
+        r"(?<!\$)\$([^$\n]+?)\$(?!\$)",
+        lambda m: "$ " + m.group(1).strip() + " $",
         text,
     )
 
@@ -235,10 +243,10 @@ def _fix_quarkdown_math(text: str) -> str:
     def _fix_box(m: re.Match) -> str:
         title = m.group(1).strip()
         box_type = m.group(2).strip()
-        return f'.box type:{{{box_type}}}\n    **{title}**'
+        return f".box type:{{{box_type}}}\n    **{title}**"
 
     text = re.sub(
-        r'\.box\s+\{([^}]+)\}\s+type:\{([^}]+)\}',
+        r"\.box\s+\{([^}]+)\}\s+type:\{([^}]+)\}",
         _fix_box,
         text,
     )

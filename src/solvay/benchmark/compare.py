@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from collections import defaultdict
+from dataclasses import dataclass
 
 from solvay.benchmark.jsonl import RunHeader, RunRecord
 
@@ -11,12 +11,12 @@ from solvay.benchmark.jsonl import RunHeader, RunRecord
 @dataclass
 class ComparisonReport:
     header: RunHeader
-    profiles: list[str]                             # sorted
-    problems: list[str]                             # sorted
-    results: dict[str, dict[str, bool | None]]      # {problem_id: {profile: correct}}
-    accuracy: dict[str, float]                      # {profile: 0.0–1.0}
-    avg_time: dict[str, float]                      # {profile: seconds}
-    avg_tokens: dict[str, float]                    # {profile: output token count}
+    profiles: list[str]  # sorted
+    problems: list[str]  # sorted
+    results: dict[str, dict[str, bool | None]]  # {problem_id: {profile: correct}}
+    accuracy: dict[str, float]  # {profile: 0.0–1.0}
+    avg_time: dict[str, float]  # {profile: seconds}
+    avg_tokens: dict[str, float]  # {profile: output token count}
 
 
 def build_comparison(header: RunHeader, records: list[RunRecord]) -> ComparisonReport:

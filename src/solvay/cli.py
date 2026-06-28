@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os as _os
+
 if not _os.environ.get("LANGSMITH_API_KEY"):
     _os.environ.setdefault("LANGCHAIN_TRACING_V2", "false")
     _os.environ.setdefault("LANGSMITH_TRACING", "false")
@@ -137,10 +138,11 @@ def solve(
 
     typer.echo(f"Solving: {problem[:80]}{'...' if len(problem) > 80 else ''}\n")
 
-    from solvay.config import SolvayConfig
-
     # For Ollama models cap generation to prevent Qwen thinking-mode runaway.
     import os as _os
+
+    from solvay.config import SolvayConfig
+
     _effective_model = model or _os.environ.get("SOLVAY_MODEL", "")
     _model_kwargs: dict = {}
     if _effective_model.startswith("ollama:"):
@@ -263,9 +265,7 @@ def chat(
 
             if seen_subagents:
                 elapsed = time.monotonic() - subagent_start
-                typer.echo(
-                    f"  \033[32m✓\033[0m {seen_subagents[-1]}  ({elapsed:.0f}s)"
-                )
+                typer.echo(f"  \033[32m✓\033[0m {seen_subagents[-1]}  ({elapsed:.0f}s)")
 
         except KeyboardInterrupt:
             typer.echo("\n\033[33mInterrupted.\033[0m\n")

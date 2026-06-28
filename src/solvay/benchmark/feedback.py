@@ -46,29 +46,31 @@ def detect_grading_fallback(
         problem = problems.get(rec.problem_id)
         expected_value = problem.expected.value if problem else "unknown"
 
-        reports.append(FieldReport.create(
-            subject_uri=_subject_uri(rec.problem_id),
-            goal="Grade model answer using SymPy symbolic/numeric equivalence",
-            expectation="sympy_grade returns True or False (definitive result)",
-            observed=(
-                f"sympy_grade returned None for problem '{rec.problem_id}', "
-                f"falling back to LLM-judge. Expected value: '{expected_value}'"
-            ),
-            friction_type=FrictionType.BUG,
-            fault_domain=FaultDomain.TOOL,
-            severity=Severity.DEGRADED,
-            confidence=Confidence.HIGH,
-            reproducibility=Reproducibility.DETERMINISTIC,
-            dedupe_key=f"grading-fallback:{rec.problem_id}",
-            tool_call_name="sympy_grade",
-            evidence=[
-                f"problem_id: {rec.problem_id}",
-                f"expected.value: {expected_value}",
-                f"expected.kind: {problem.expected.kind if problem else 'unknown'}",
-                f"profile: {rec.profile}",
-                f"grading_method: {rec.grading_method}",
-            ],
-        ))
+        reports.append(
+            FieldReport.create(
+                subject_uri=_subject_uri(rec.problem_id),
+                goal="Grade model answer using SymPy symbolic/numeric equivalence",
+                expectation="sympy_grade returns True or False (definitive result)",
+                observed=(
+                    f"sympy_grade returned None for problem '{rec.problem_id}', "
+                    f"falling back to LLM-judge. Expected value: '{expected_value}'"
+                ),
+                friction_type=FrictionType.BUG,
+                fault_domain=FaultDomain.TOOL,
+                severity=Severity.DEGRADED,
+                confidence=Confidence.HIGH,
+                reproducibility=Reproducibility.DETERMINISTIC,
+                dedupe_key=f"grading-fallback:{rec.problem_id}",
+                tool_call_name="sympy_grade",
+                evidence=[
+                    f"problem_id: {rec.problem_id}",
+                    f"expected.value: {expected_value}",
+                    f"expected.kind: {problem.expected.kind if problem else 'unknown'}",
+                    f"profile: {rec.profile}",
+                    f"grading_method: {rec.grading_method}",
+                ],
+            )
+        )
 
     return reports
 
@@ -102,27 +104,29 @@ def detect_inconsistent_grading(
             if len(grades) <= 1:
                 continue
             profiles_detail = answer_profiles[answer_key]
-            reports.append(FieldReport.create(
-                subject_uri=_subject_uri(problem_id),
-                goal="Grade model answers consistently across profiles",
-                expectation="Identical answers receive identical grades",
-                observed=(
-                    f"Same answer for '{problem_id}' graded differently: "
-                    f"{', '.join(profiles_detail)}"
-                ),
-                friction_type=FrictionType.WRONG_OUTPUT,
-                fault_domain=FaultDomain.TOOL,
-                severity=Severity.BLOCKED,
-                confidence=Confidence.HIGH,
-                reproducibility=Reproducibility.DETERMINISTIC,
-                dedupe_key=f"inconsistent-grading:{problem_id}",
-                tool_call_name="evaluate_correct",
-                evidence=[
-                    f"problem_id: {problem_id}",
-                    f"answer (first 200 chars): {answer_key}",
-                    *[f"  {p}" for p in profiles_detail],
-                ],
-            ))
+            reports.append(
+                FieldReport.create(
+                    subject_uri=_subject_uri(problem_id),
+                    goal="Grade model answers consistently across profiles",
+                    expectation="Identical answers receive identical grades",
+                    observed=(
+                        f"Same answer for '{problem_id}' graded differently: "
+                        f"{', '.join(profiles_detail)}"
+                    ),
+                    friction_type=FrictionType.WRONG_OUTPUT,
+                    fault_domain=FaultDomain.TOOL,
+                    severity=Severity.BLOCKED,
+                    confidence=Confidence.HIGH,
+                    reproducibility=Reproducibility.DETERMINISTIC,
+                    dedupe_key=f"inconsistent-grading:{problem_id}",
+                    tool_call_name="evaluate_correct",
+                    evidence=[
+                        f"problem_id: {problem_id}",
+                        f"answer (first 200 chars): {answer_key}",
+                        *[f"  {p}" for p in profiles_detail],
+                    ],
+                )
+            )
 
     return reports
 
@@ -152,30 +156,34 @@ def detect_unanimous_disagreement(
         problem = problems.get(problem_id)
         expected_value = problem.expected.value if problem else "unknown"
 
-        reports.append(FieldReport.create(
-            subject_uri=_subject_uri(problem_id),
-            goal="Verify benchmark expected values against model consensus",
-            expectation="At least one profile solves the problem correctly",
-            observed=(
-                f"All {len(recs)} profiles marked incorrect for '{problem_id}'. "
-                f"Expected: '{expected_value}'. "
-                f"This may indicate a wrong expected value."
-            ),
-            friction_type=FrictionType.WRONG_OUTPUT,
-            fault_domain=FaultDomain.AMBIGUOUS_CONTRACT,
-            severity=Severity.DEGRADED,
-            confidence=Confidence.MEDIUM,
-            reproducibility=Reproducibility.DETERMINISTIC,
-            dedupe_key=f"unanimous-disagreement:{problem_id}",
-            tool_call_name="evaluate_correct",
-            evidence=[
-                f"problem_id: {problem_id}",
-                f"expected: {expected_value}",
-                f"profiles tested: {len(recs)}",
-                *[f"  {r.profile}: correct={r.correct}, method={r.grading_method}"
-                  for r in recs],
-            ],
-        ))
+        reports.append(
+            FieldReport.create(
+                subject_uri=_subject_uri(problem_id),
+                goal="Verify benchmark expected values against model consensus",
+                expectation="At least one profile solves the problem correctly",
+                observed=(
+                    f"All {len(recs)} profiles marked incorrect for '{problem_id}'. "
+                    f"Expected: '{expected_value}'. "
+                    f"This may indicate a wrong expected value."
+                ),
+                friction_type=FrictionType.WRONG_OUTPUT,
+                fault_domain=FaultDomain.AMBIGUOUS_CONTRACT,
+                severity=Severity.DEGRADED,
+                confidence=Confidence.MEDIUM,
+                reproducibility=Reproducibility.DETERMINISTIC,
+                dedupe_key=f"unanimous-disagreement:{problem_id}",
+                tool_call_name="evaluate_correct",
+                evidence=[
+                    f"problem_id: {problem_id}",
+                    f"expected: {expected_value}",
+                    f"profiles tested: {len(recs)}",
+                    *[
+                        f"  {r.profile}: correct={r.correct}, method={r.grading_method}"
+                        for r in recs
+                    ],
+                ],
+            )
+        )
 
     return reports
 

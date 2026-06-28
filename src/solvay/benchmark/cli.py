@@ -56,7 +56,10 @@ def run_cmd(
     ] = "",
     grader_model: Annotated[
         str | None,
-        typer.Option("--grader-model", help="Model for LLM-judge grading fallback (defaults to first --models entry)."),
+        typer.Option(
+            "--grader-model",
+            help="Model for LLM-judge grading fallback (defaults to first --models entry).",
+        ),
     ] = None,
     domain: Annotated[
         str | None,

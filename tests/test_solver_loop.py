@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import AIMessage, HumanMessage
@@ -241,7 +240,9 @@ class TestPrepareNode:
         solver_model = FakeListChatModel(responses=[_draft_json()])
         verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
         reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
-        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+        graph = build_solver_loop_graph(
+            solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model
+        )
 
         result = graph.invoke(self._make_message_only_input(description))
         assert result["problem_spec"]["domain"] == "mechanics"
@@ -253,7 +254,9 @@ class TestPrepareNode:
         solver_model = FakeListChatModel(responses=[_draft_json()])
         verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
         reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
-        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+        graph = build_solver_loop_graph(
+            solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model
+        )
 
         result = graph.invoke(self._make_message_only_input(description))
         assert result["problem_spec"].get("raw_description") is not None
@@ -264,7 +267,9 @@ class TestPrepareNode:
         solver_model = FakeListChatModel(responses=[_draft_json()])
         verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
         reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
-        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+        graph = build_solver_loop_graph(
+            solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model
+        )
 
         result = graph.invoke(inputs)
         assert result["problem_spec"]["domain"] == "mechanics"
@@ -274,7 +279,9 @@ class TestPrepareNode:
         solver_model = FakeListChatModel(responses=[_draft_json()])
         verifier_model = FakeListChatModel(responses=[_verdict_json(True)])
         reviewer_model = FakeListChatModel(responses=[_verdict_json(True)])
-        graph = build_solver_loop_graph(solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model)
+        graph = build_solver_loop_graph(
+            solver_model=solver_model, verifier_model=verifier_model, reviewer_model=reviewer_model
+        )
 
         result = graph.invoke({"messages": []})
         assert result.get("problem_spec", {}) == {}

@@ -41,7 +41,10 @@ build-backend = "hatchling.build"
 packages = ["src/solvay"]
 
 [tool.ruff]
-target-version = "py314"
+# py313, not py314: ruff 0.15.10's formatter regresses under py314 and rewrites
+# `except (A, B):` into the Python-2 `except A, B:` (a SyntaxError). py313 is a
+# safe subset for this 3.14 project. Revert to py314 once ruff fixes the bug.
+target-version = "py313"
 line-length = 99
 
 [tool.ruff.lint]

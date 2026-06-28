@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from solvay.benchmark.config import BenchConfig
 from solvay.benchmark.grading import (
     _check_numeric_match,
@@ -20,10 +18,10 @@ from solvay.benchmark.grading import (
 )
 from solvay.benchmark.schema import Expected, Problem, Verification
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _numeric_expected(value: str, tolerance_rel: float = 0.01) -> Expected:
     return Expected(
@@ -46,27 +44,29 @@ def _symbolic_expected(value: str) -> Expected:
 
 
 def _fake_problem() -> Problem:
-    return Problem.model_validate({
-        "id": "test-001",
-        "version": 1,
-        "source": {
-            "kind": "synthetic",
-            "origin": "test",
-            "generated_at": "2026-01-01T00:00:00Z",
-            "seed": 0,
-        },
-        "domain": "mechanics",
-        "statement": "Find the acceleration.",
-        "given": {"m": "2 kg"},
-        "find": "acceleration",
-        "expected": {
-            "kind": "numeric",
-            "value": "2",
-            "unit": "m/s^2",
-            "tolerance_rel": 0.01,
-            "verification": {"method": "numeric_eval", "script": None},
-        },
-    })
+    return Problem.model_validate(
+        {
+            "id": "test-001",
+            "version": 1,
+            "source": {
+                "kind": "synthetic",
+                "origin": "test",
+                "generated_at": "2026-01-01T00:00:00Z",
+                "seed": 0,
+            },
+            "domain": "mechanics",
+            "statement": "Find the acceleration.",
+            "given": {"m": "2 kg"},
+            "find": "acceleration",
+            "expected": {
+                "kind": "numeric",
+                "value": "2",
+                "unit": "m/s^2",
+                "tolerance_rel": 0.01,
+                "verification": {"method": "numeric_eval", "script": None},
+            },
+        }
+    )
 
 
 def _default_config() -> BenchConfig:
@@ -76,6 +76,7 @@ def _default_config() -> BenchConfig:
 # ---------------------------------------------------------------------------
 # TestSympyGrade
 # ---------------------------------------------------------------------------
+
 
 class TestSympyGrade:
     def test_numeric_exact_match(self):
@@ -175,6 +176,7 @@ class TestLatexConversion:
 # TestPrioritizedNumericGrading
 # ---------------------------------------------------------------------------
 
+
 class TestPrioritizedNumericGrading:
     """Tests for prioritised number extraction (boxed > display math > text)."""
 
@@ -232,6 +234,7 @@ class TestPrioritizedNumericGrading:
 # TestSafeSympify
 # ---------------------------------------------------------------------------
 
+
 class TestSafeSympify:
     """Tests for _safe_sympify handling SymPy namespace collisions."""
 
@@ -259,6 +262,7 @@ class TestSafeSympify:
 # ---------------------------------------------------------------------------
 # TestLlmGrade
 # ---------------------------------------------------------------------------
+
 
 class TestLlmGrade:
     def _mock_llm(self, content: str):
@@ -313,6 +317,7 @@ class TestLlmGrade:
 # ---------------------------------------------------------------------------
 # TestEvaluateCorrect
 # ---------------------------------------------------------------------------
+
 
 class TestEvaluateCorrect:
     def test_uses_sympy_when_parseable(self):

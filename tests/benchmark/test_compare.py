@@ -7,8 +7,8 @@ import pytest
 from solvay.benchmark.compare import build_comparison, format_markdown
 from solvay.benchmark.jsonl import RunHeader, RunRecord
 
-
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _header() -> RunHeader:
     return RunHeader(
@@ -43,6 +43,7 @@ def _record(
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
 
 def test_builds_from_records() -> None:
     """build_comparison discovers all unique profiles and problems."""
